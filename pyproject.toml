@@ -1,0 +1,42 @@
+[project]
+name = "scripted_render_pipeline"
+version = "0.0.1"
+authors = [
+  { name="thopp-tudelft", email="t.r.hoppener@tudelft.nl" },
+]
+keywords = ["", "", "", "electron microscopy", "microscopy", "render-python"]
+description = "automated pipeline interfacing with render-ws rest api"
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: GNU Affero General Public License v3",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Image Processing",
+]
+dependencies = [
+    "imagecodecs",
+    "numpy",
+    "render-python",
+    "requests",
+    "scikit-image",
+    "tifffile",
+    "tqdm",
+]
+
+[project.optional-dependencies]
+format = [
+    "black",
+    "isort",
+    "flake8",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/hoogenboom-group/scripted_render_pipeline"
+"Bug Tracker" = "https://github.com/hoogenboom-group/scripted_render_pipeline/issues"
+
+[project.scripts]
+import = "scripted_render_pipeline.import:_main"
+basic_auth = "basic_auth:_main"

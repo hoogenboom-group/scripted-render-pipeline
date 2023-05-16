@@ -1,0 +1,65 @@
+#!/bin/env python
+import json
+import pathlib
+
+# saves file inside project, a better option would be to use something like
+# platformdirs to find a local directory that will work in case this were to
+# be installed to a system location
+FILENAME = ".auth.json"
+FILEPATH = pathlib.Path(__file__).parent.joinpath(FILENAME)
+
+
+class AuthFileMissing(FileNotFoundError):
+    """the file with http basic auth credentials could not be found"""
+
+
+def load_auth():
+    """get http basic auth info from file"""
+    try:
+        with FILEPATH.open() as fp:
+            return tuple(json.load(fp))
+    except FileNotFoundError:
+        raise AuthFileMissing(
+            f"could not find auth file at {FILEPATH}, create it with save_auth"
+        ) from None
+
+
+def save_auth(username, password):
+    """save http basic auth info to file"""
+    auth = username, password
+    with FILEPATH.open("w") as fp:
+        return json.dump(auth, fp)
+
+
+def _main():
+    import argparse
+    import sys
+
+    parser = argparse.ArgumentParser(
+        prog="basic_auth",
+        description="loads and saves http basic auth credentials",
+    )
+    parser.add_argument("action", choices=["show", "save"], nargs="?")
+    args = parser.parse_args()
+
+    if args.action == "save":
+        import getpass
+
+        username = input("username:\n")
+        password = getpass.getpass("password:\n")
+        save_auth(username, password)
+    else:
+        items = "username", "password"
+        try:
+            auth = load_auth()
+        except AuthFileMissing:
+            print("failed to get stored auth file, create it with save")
+            sys.exit(1)
+
+        for item, value in zip(items, auth):
+            print(f"{item}:")
+            print(f"{value}")
+
+
+if __name__ == "__main__":
+    _main()
