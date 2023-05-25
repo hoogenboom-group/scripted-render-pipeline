@@ -38,5 +38,5 @@ format = [
 "Bug Tracker" = "https://github.com/hoogenboom-group/scripted_render_pipeline/issues"
 
 [project.scripts]
-import = "scripted_render_pipeline.import:_main"
-basic_auth = "basic_auth:_main"
+render_import = "scripted_render_pipeline:importer._main"
+render_basic_auth = "scripted_render_pipeline:basic_auth._main"

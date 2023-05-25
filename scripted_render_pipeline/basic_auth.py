@@ -1,4 +1,10 @@
 #!/bin/env python
+"""this module manages http basic auth credentials
+
+a stored file with credentials to use with http basic auth is stored and can be
+loaded when connecting to render.
+before they can be loaded they need to be stored using "save".
+"""
 import json
 import pathlib
 
