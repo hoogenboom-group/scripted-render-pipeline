@@ -6,13 +6,15 @@ import logging
 import pathlib
 
 from .basic_auth import load_auth
-from .mipmapper import Mipmapper
+from .clem_mipmapper import CLEM_Mipmapper
+from .fastem_mipmapper import FASTEM_Mipmapper
 from .uploader import Uploader
 
 # render properties
 HOST = "https://sonic.tnw.tudelft.nl"
 OWNER = "rlane"
-PROJECT = "20191101_ratpancreas_partial_partial_test"
+# PROJECT = "20191101_ratpancreas_partial_partial_test"
+PROJECT = "20230523_singleholder_Earthworm_03_partial_partial_test"
 
 # script properties
 PARALLEL = 40  # read this many images in parallel to optimise io usage
@@ -23,14 +25,23 @@ NAS_SHARE_PATH = pathlib.Path.home() / "shares/long_term_storage"
 SERVER_STORAGE_PATH_STR = "/long_term_storage/"
 PROJECT_PATH = (
     (NAS_SHARE_PATH if REMOTE else pathlib.Path(SERVER_STORAGE_PATH_STR))
-    / "thopp/20191101_rat-pancreas_partial"
+    # / "thopp/20191101_rat-pancreas_partial"
     #  / "rlane/SECOM/projects/20191101_rat-pancreas_partial"
+    / "thopp/20230523_singleholder_Earthworm_03/ROA-1"
 )
+MIPMAP_TYPE = "FASTEM"  # "CLEM"
 
 
 def _main():
     auth = load_auth()
-    mipmapper = Mipmapper(PROJECT_PATH, PARALLEL, CLOBBER)
+    match MIPMAP_TYPE:
+        case "CLEM":
+            mipmapper = CLEM_Mipmapper(PROJECT_PATH, PARALLEL, CLOBBER)
+        case "FASTEM":
+            mipmapper = FASTEM_Mipmapper(PROJECT_PATH, PARALLEL, CLOBBER)
+        case _:
+            raise RuntimeError(f"wrong mipmap type! '{MIPMAP_TYPE}'")
+
     if REMOTE:
         mipmapper.set_remote_path(NAS_SHARE_PATH, SERVER_STORAGE_PATH_STR)
 

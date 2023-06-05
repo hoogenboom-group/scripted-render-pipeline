@@ -28,6 +28,7 @@ classifiers = [
 dependencies = [
   "imagecodecs",
   "numpy",
+  "pyyaml",
   "render-python",
   "requests",
   "scikit-image",
