@@ -152,8 +152,14 @@ class Mipmapper(abc.ABC):
 
     @abc.abstractmethod
     def find_files(self):
-        ...
+        """generator that finds all the files to read in self.project_path
+
+        yields args for create_mipmaps
+        """
 
     @abc.abstractmethod
     def create_mipmaps(self, args):
-        ...
+        """create mipmaps for a file
+
+        args: result yielded from find_files
+        """

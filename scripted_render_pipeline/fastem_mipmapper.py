@@ -30,6 +30,11 @@ STACK_BAD_CHARACTER_REPLACEMENT = "_"
 
 class FASTEM_Mipmapper(Mipmapper):
     def read_tiff(self, output_dir, file_path):
+        """read one tiff and generate mipmaps
+
+        output_dir: location to put mipmaps
+        file_path: file path to the tiff file to read
+        """
         with tifffile.TiffFile(file_path) as tiff:
             if not tiff.pages:
                 raise RuntimeError(f"found empty tifffile: {file_path}")
@@ -46,7 +51,7 @@ class FASTEM_Mipmapper(Mipmapper):
 
         return pyramid, percentile, width, length, time
 
-    def create_mipmaps(self, args):
+    def create_mipmaps(self, args):  # override
         file_path, project_name, section_name, zvalue, metadata = args
         match = TIFFILE_X_BY_Y_RX.fullmatch(file_path.stem)
         x_by_y = int(match.group("x")), int(match.group("y"))
@@ -74,6 +79,8 @@ class FASTEM_Mipmapper(Mipmapper):
         maxs = [max(*values) for values in zip(*bbox)]
         # assumes no overlap
         um_position = [xy * px * pixel_size for xy, px in zip(x_by_y, pixels)]
+        # x and y are flipped?
+        um_position.reverse()
         zipped = zip(mins, maxs, um_position)
         axes = [Axis(*item, pixel_size) for item in zipped]
         stack_name = STACK_BAD_CHARACTER_RX.sub(
@@ -81,7 +88,7 @@ class FASTEM_Mipmapper(Mipmapper):
         )
         return [Tile(stack_name, zvalue, spec, time, axes, *percentile)]
 
-    def find_files(self):
+    def find_files(self):  # override
         metadata_path = self.project_path / METADATA_FILENAME
         with metadata_path.open() as fp:
             metadata = yaml.safe_load(fp)

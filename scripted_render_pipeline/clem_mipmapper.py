@@ -41,7 +41,7 @@ xml.etree.ElementTree.register_namespace("", OME_NAMESPACE_URI)
 
 
 class CLEM_Mipmapper(Mipmapper):
-    def create_mipmaps(self, args):
+    def create_mipmaps(self, args):  # override
         file_path, section_name, zvalue, datatype_dir = args
         match = TIFFILE_X_BY_Y_RX.fullmatch(file_path.stem)
         x_by_y = int(match.group("x")), int(match.group("y"))
@@ -95,6 +95,18 @@ class CLEM_Mipmapper(Mipmapper):
         section_name,
         zvalue,
     ):
+        """create mipmaps for a single page in the multipage tiffile
+
+        page: tifffile.TiffPage to interpret
+        x_by_y: x and y count as tuple
+        root: metadata from this tifffile
+        image_elements_by_name: dictionary of metadata for image elements
+        detector_by_id: dictionary of detector names for ids
+        datatype_dir: type of capture
+        file_path: path of this tifffile
+        section_name: name of this stack
+        zvalue: z height of this section
+        """
         channel = page.tags["PageName"].value
         element = image_elements_by_name[channel]
         new_root = copy.copy(root)
@@ -223,7 +235,7 @@ class CLEM_Mipmapper(Mipmapper):
         )
         return Tile(name, zvalue, spec, time, axes, *percentile)
 
-    def find_files(self):
+    def find_files(self):  # override
         section_paths = [*sorted(self.project_path.glob(SECTION_DIR_GLOB))]
         if not section_paths:
             raise RuntimeError(f"no files found at {self.project_path}")
