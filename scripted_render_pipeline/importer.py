@@ -30,6 +30,8 @@ PROJECT_PATH = (
     / "thopp/20230523_singleholder_Earthworm_03/ROA-1"
 )
 MIPMAP_TYPE = "FASTEM"  # "CLEM"
+# for fastem datasets only
+USE_POSITIONS = True  # use the automated stitching results
 
 
 def _main():
@@ -39,6 +41,8 @@ def _main():
             mipmapper = CLEM_Mipmapper(PROJECT_PATH, PARALLEL, CLOBBER)
         case "FASTEM":
             mipmapper = FASTEM_Mipmapper(PROJECT_PATH, PARALLEL, CLOBBER)
+            if USE_POSITIONS:
+                mipmapper.find_positions()
         case _:
             raise RuntimeError(f"wrong mipmap type! '{MIPMAP_TYPE}'")
 

@@ -10,9 +10,11 @@ import yaml
 from .mipmapper import Mipmapper
 from .render_specs import Axis, Tile
 
-METADATA_FILENAME = "mega_field_meta_data.yaml"
 SCOPE_ID = "FASTEM"
 
+METADATA_FILENAME = "mega_field_meta_data.yaml"
+POSITIONS_FILENAME = "positions.txt"
+CORRECTIONS_DIR = "corrected"
 IMAGE_FILENAME_PADDING = 3
 TIFFILE_GLOB = (
     "[0-9]" * IMAGE_FILENAME_PADDING
@@ -26,9 +28,49 @@ TIFFILE_X_BY_Y_RX = re.compile(
 )
 STACK_BAD_CHARACTER_RX = re.compile(r"[^0-9a-zA-Z_]+")
 STACK_BAD_CHARACTER_REPLACEMENT = "_"
+POSITIONS_LINE_RX = re.compile(
+    rf"(?P<file>{_rx_number_part}_{_rx_number_part}_0.tiff) at "
+    r"(?P<x>\d+), (?P<y>\d+)"
+)
 
 
 class FASTEM_Mipmapper(Mipmapper):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.positions = None
+
+    def find_positions(self) -> bool:
+        """try to find the positions.txt file and parse it
+
+        the positions.txt file will be used when creating mipmaps and given to
+        render as transforms instead of putting all images side by side
+        returns whether the file was found
+        """
+        path = self.project_path / POSITIONS_FILENAME
+        if not path.exists():
+            path = self.project_path / CORRECTIONS_DIR / POSITIONS_FILENAME
+            if not path.exists():
+                self.positions = None
+                return False
+
+        self.positions = {}
+        with path.open() as fp:
+            fp.readline()
+            for line in fp.readlines():
+                match = POSITIONS_LINE_RX.match(line)
+                if match is None:
+                    self.positions = None
+                    raise RuntimeError(
+                        f"found positions.txt file at {path.absolute()} could "
+                        "not be parsed"
+                    )
+
+                filename = match.group("file")
+                coords = match.group("x"), match.group("y")
+                self.positions[filename] = [int(coord) for coord in coords]
+
+        return True
+
     def read_tiff(self, output_dir, file_path):
         """read one tiff and generate mipmaps
 
@@ -77,12 +119,21 @@ class FASTEM_Mipmapper(Mipmapper):
         bbox = np.array([[0, 0], [0, pixels[1]], [pixels[0], 0], [*pixels]])
         mins = [min(*values) for values in zip(*bbox)]
         maxs = [max(*values) for values in zip(*bbox)]
-        # assumes no overlap
-        um_position = [xy * px * pixel_size for xy, px in zip(x_by_y, pixels)]
-        # x and y are flipped?
-        um_position.reverse()
-        zipped = zip(mins, maxs, um_position)
-        axes = [Axis(*item, pixel_size) for item in zipped]
+        if self.positions is None:
+            # x and y are flipped?
+            rev = reversed(x_by_y)
+            # assumes no overlap
+            coordinates = [xy * px for xy, px in zip(rev, pixels)]
+        else:
+            # use saved coordinates from positions.txt
+            try:
+                coordinates = self.positions[file_path.name]
+            except KeyError as exc:
+                raise RuntimeError(
+                    f"file at {file_path} was not found in positions.txt"
+                ) from exc
+
+        axes = [Axis(*item) for item in zip(mins, maxs, coordinates)]
         stack_name = STACK_BAD_CHARACTER_RX.sub(
             STACK_BAD_CHARACTER_REPLACEMENT, section_name
         )
