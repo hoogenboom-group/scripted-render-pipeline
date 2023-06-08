@@ -149,6 +149,11 @@ class FASTEM_Mipmapper(Mipmapper):
             f"threads"
         )
         zvalue = 0
-        *_, project_name, section_name = self.project_path.parts
+        if self.project_path.name == CORRECTIONS_DIR:
+            *_, project_name, section_name, _ = self.project_path.parts
+            section_name += "_" + CORRECTIONS_DIR
+        else:
+            *_, project_name, section_name = self.project_path.parts
+
         for file_path in self.project_path.glob(TIFFILE_GLOB):
             yield file_path, project_name, section_name, zvalue, metadata
