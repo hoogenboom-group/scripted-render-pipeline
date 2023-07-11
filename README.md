@@ -2,7 +2,9 @@
 automated pipeline interfacing with render-ws rest api
 
 ### installation
-`pip install --require-virtualenv .`
+```
+pip install --require-virtualenv .
+```
 this will install required dependencies from PyPI as well
 
 ### usage
