@@ -5,7 +5,7 @@ relies on provided parameters being set in the script for now
 import logging
 import pathlib
 
-from .basic_auth import load_auth
+from ..basic_auth import load_auth
 from .clem_mipmapper import CLEM_Mipmapper
 from .fastem_mipmapper import FASTEM_Mipmapper
 from .uploader import Uploader
