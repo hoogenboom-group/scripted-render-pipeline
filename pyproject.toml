@@ -1,5 +1,5 @@
 [project]
-name = "scripted_render_pipeline"
+name = "scripted-render-pipeline"
 version = "0.0.1"
 authors = [
   { name="thopp-tudelft", email="t.r.hoppener@tudelft.nl" },
@@ -44,8 +44,8 @@ format = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/hoogenboom-group/scripted_render_pipeline"
-"Bug Tracker" = "https://github.com/hoogenboom-group/scripted_render_pipeline/issues"
+"Homepage" = "https://github.com/hoogenboom-group/scripted-render-pipeline"
+"Bug Tracker" = "https://github.com/hoogenboom-group/scripted-render-pipeline/issues"
 
 [project.scripts]
 render_import = "scripted_render_pipeline.importer:__main__._main"
