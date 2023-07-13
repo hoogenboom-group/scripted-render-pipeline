@@ -89,15 +89,13 @@ class FASTEM_Mipmapper(Mipmapper):
             tags = tiff.pages[0].tags
             width, length = tags["ImageWidth"].value, tags["ImageLength"].value
             # corrected tiffs don't include `DateTime` tag for some reason
-            try:
-                timestr = tags["DateTime"].value
-            except KeyError:
-                # super hacky way to get `DateTime` of corrected tiffs
+            if self.project_path.name == CORRECTIONS_DIR:
+                # hacky way to get `DateTime` of corrected tiffs
                 # from the corresponding raw tiff file
                 file_path_to_raw = file_path.parents[1] / file_path.name
                 raw_tiff = tifffile.TiffFile(file_path_to_raw)
                 tags = raw_tiff.pages[0].tags
-                timestr = tags["DateTime"].value
+            timestr = tags["DateTime"].value
             time = datetime.datetime.fromisoformat(timestr)
 
         return pyramid, percentile, width, length, time
