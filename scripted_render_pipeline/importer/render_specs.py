@@ -63,7 +63,7 @@ class Tile:
         spec.maxX, spec.maxY = max_pos
         x_pos, y_pos = origin_pos
         model = renderapi.transform.AffineModel(B0=x_pos, B1=y_pos)
-        spec.tforms.append(model)
+        spec.tforms = [model]
 
 
 class Axis:
