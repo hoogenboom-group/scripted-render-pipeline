@@ -117,6 +117,8 @@ class FASTEM_Mipmapper(Mipmapper):
             sectionId=section_name,
             scopeId=SCOPE_ID,
             pixelsize=float(pixel_size),
+            imageRow=x_by_y[1],
+            imageCol=x_by_y[0]
         )
         spec = renderapi.tilespec.TileSpec(
             imagePyramid=pyramid,
