@@ -88,8 +88,11 @@ class FASTEM_Mipmapper(Mipmapper):
             percentile = np.percentile(image, intensity_clip)
             tags = tiff.pages[0].tags
             width, length = tags["ImageWidth"].value, tags["ImageLength"].value
-            timestr = tags["DateTime"].value
-            time = datetime.datetime.fromisoformat(timestr)
+            try:
+                timestr = tags["DateTime"].value
+                time = datetime.datetime.fromisoformat(timestr)
+            except KeyError:
+                time = -1
 
         return pyramid, percentile, width, length, time
 
