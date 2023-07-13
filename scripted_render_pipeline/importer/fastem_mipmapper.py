@@ -114,7 +114,7 @@ class FASTEM_Mipmapper(Mipmapper):
         )
         pixel_size = metadata["pixel_size"] / 1000  # convert nm to um
         layout = renderapi.tilespec.Layout(
-            sectionId=f"{project_name}/{section_name}",
+            sectionId=section_name,
             scopeId=SCOPE_ID,
             pixelsize=float(pixel_size),
         )
