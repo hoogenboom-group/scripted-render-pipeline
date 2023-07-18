@@ -123,6 +123,8 @@ class FASTEM_Mipmapper(Mipmapper):
         spec = renderapi.tilespec.TileSpec(
             imagePyramid=pyramid,
             layout=layout,
+            width=width,
+            height=length,
         )
         pixels = width, length
         bbox = np.array([[0, 0], [0, pixels[1]], [pixels[0], 0], [*pixels]])
