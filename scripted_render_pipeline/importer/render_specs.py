@@ -180,7 +180,10 @@ class Section:
         for i, time in enumerate(gen):
             spec = self.tiles_by_acquisitiontime[time].spec
             sequential_id = str(i).zfill(width)
-            spec.tileId = f"{sequential_id}_{self.name}_{self.zvalue}"
+            # spec.tileId = f"{sequential_id}_{self.name}_{self.zvalue}"
+            row = spec.layout.imageRow
+            col = spec.layout.imageCol
+            spec.tileId = f"t{sequential_id}_z{self.zvalue}_y{row}_x{col}"
 
     def set_minmax(self):
         """update the min and max intensity values on all tilespecs

@@ -23,8 +23,8 @@ TIFFILE_GLOB = (
     + "_0.tiff"
 )
 _rx_number_part = rf"\d{{{IMAGE_FILENAME_PADDING}}}"
-TIFFILE_X_BY_Y_RX = re.compile(
-    rf"(?P<x>{_rx_number_part})_(?P<y>{_rx_number_part})_0"
+TIFFILE_Y_BY_X_RX = re.compile(
+    rf"(?P<y>{_rx_number_part})_(?P<x>{_rx_number_part})_0"
 )
 STACK_BAD_CHARACTER_RX = re.compile(r"[^0-9a-zA-Z_]+")
 STACK_BAD_CHARACTER_REPLACEMENT = "_"
@@ -102,12 +102,12 @@ class FASTEM_Mipmapper(Mipmapper):
 
     def create_mipmaps(self, args):  # override
         file_path, project_name, section_name, zvalue, metadata = args
-        match = TIFFILE_X_BY_Y_RX.fullmatch(file_path.stem)
-        x_by_y = int(match.group("x")), int(match.group("y"))
-        x_by_y_str = "x".join(
-            [str(xy).zfill(IMAGE_FILENAME_PADDING) for xy in x_by_y]
+        match = TIFFILE_Y_BY_X_RX.fullmatch(file_path.stem)
+        y_by_x = int(match.group("y")), int(match.group("x"))
+        y_by_x_str = "x".join(
+            [str(xy).zfill(IMAGE_FILENAME_PADDING) for xy in y_by_x]
         )
-        output_dir = self.mipmap_path / x_by_y_str
+        output_dir = self.mipmap_path / y_by_x_str
         output_dir.mkdir(parents=True, exist_ok=self.clobber)
         pyramid, percentile, width, length, time = self.read_tiff(
             output_dir, file_path
@@ -117,8 +117,8 @@ class FASTEM_Mipmapper(Mipmapper):
             sectionId=section_name,
             scopeId=SCOPE_ID,
             pixelsize=float(pixel_size),
-            imageRow=x_by_y[1],
-            imageCol=x_by_y[0]
+            imageRow=y_by_x[0],
+            imageCol=y_by_x[1]
         )
         spec = renderapi.tilespec.TileSpec(
             imagePyramid=pyramid,
@@ -132,7 +132,7 @@ class FASTEM_Mipmapper(Mipmapper):
         maxs = [max(*values) for values in zip(*bbox)]
         if self.positions is None:
             # x and y are flipped?
-            rev = reversed(x_by_y)
+            rev = reversed(y_by_x)
             # assumes no overlap
             coordinates = [xy * px for xy, px in zip(rev, pixels)]
         else:
