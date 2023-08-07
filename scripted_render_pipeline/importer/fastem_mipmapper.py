@@ -88,14 +88,18 @@ class FASTEM_Mipmapper(Mipmapper):
             percentile = np.percentile(image, intensity_clip)
             tags = tiff.pages[0].tags
             width, length = tags["ImageWidth"].value, tags["ImageLength"].value
+
             # corrected tiffs don't include `DateTime` tag for some reason
             if self.project_path.name == CORRECTIONS_DIR:
                 # hacky way to get `DateTime` of corrected tiffs
                 # from the corresponding raw tiff file
                 file_path_to_raw = file_path.parents[1] / file_path.name
-                raw_tiff = tifffile.TiffFile(file_path_to_raw)
-                tags = raw_tiff.pages[0].tags
-            timestr = tags["DateTime"].value
+                with tifffile.TiffFile(file_path_to_raw) as raw_tiff:
+                    raw_tags = raw_tiff.pages[0].tags
+                    timestr = raw_tags["DateTime"].value
+            else:
+                timestr = tags["DateTime"].value
+
             time = datetime.datetime.fromisoformat(timestr)
 
         return pyramid, percentile, width, length, time
@@ -103,9 +107,9 @@ class FASTEM_Mipmapper(Mipmapper):
     def create_mipmaps(self, args):  # override
         file_path, project_name, section_name, zvalue, metadata = args
         match = TIFFILE_Y_BY_X_RX.fullmatch(file_path.stem)
-        y_by_x = int(match.group("y")), int(match.group("x"))
+        row, col = int(match.group("y")), int(match.group("x"))
         y_by_x_str = "x".join(
-            [str(xy).zfill(IMAGE_FILENAME_PADDING) for xy in y_by_x]
+            [str(xy).zfill(IMAGE_FILENAME_PADDING) for xy in [row, col]]
         )
         output_dir = self.mipmap_path / y_by_x_str
         output_dir.mkdir(parents=True, exist_ok=self.clobber)
@@ -117,24 +121,22 @@ class FASTEM_Mipmapper(Mipmapper):
             sectionId=section_name,
             scopeId=SCOPE_ID,
             pixelsize=float(pixel_size),
-            imageRow=y_by_x[0],
-            imageCol=y_by_x[1]
+            imageRow=row,
+            imageCol=col,
         )
         spec = renderapi.tilespec.TileSpec(
             imagePyramid=pyramid,
             layout=layout,
             width=width,
             height=length,
+            tforms=[],
         )
         pixels = width, length
-        bbox = np.array([[0, 0], [0, pixels[1]], [pixels[0], 0], [*pixels]])
-        mins = [min(*values) for values in zip(*bbox)]
-        maxs = [max(*values) for values in zip(*bbox)]
+        mins = [min(0, value) for value in pixels]
+        maxs = [max(0, value) for value in pixels]
         if self.positions is None:
-            # x and y are flipped?
-            rev = reversed(y_by_x)
             # assumes no overlap
-            coordinates = [xy * px for xy, px in zip(rev, pixels)]
+            coordinates = [xy * px for xy, px in zip([col, row], pixels)]
         else:
             # use saved coordinates from positions.txt
             try:
