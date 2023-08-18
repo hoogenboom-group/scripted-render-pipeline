@@ -40,9 +40,9 @@ def _main():
         case "CLEM":
             mipmapper = CLEM_Mipmapper(PROJECT_PATH, PARALLEL, CLOBBER)
         case "FASTEM":
-            mipmapper = FASTEM_Mipmapper(PROJECT_PATH, PARALLEL, CLOBBER)
-            if USE_POSITIONS:
-                mipmapper.find_positions()
+            mipmapper = FASTEM_Mipmapper(
+                PROJECT_PATH, PARALLEL, CLOBBER, use_positions=USE_POSITIONS
+            )
         case _:
             raise RuntimeError(f"wrong mipmap type! '{MIPMAP_TYPE}'")
 

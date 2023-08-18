@@ -35,31 +35,72 @@ POSITIONS_LINE_RX = re.compile(
 
 
 class FASTEM_Mipmapper(Mipmapper):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.positions = None
+    """creates mipmaps from images and collects tile specs for the fastem
 
-    def find_positions(self) -> bool:
+    project_path: path to project to make mipmaps for
+    parallel: how many threads to use in parallel, optimises io usage
+    clobber: wether to allow overwriting of existing mipmaps
+    mipmap_path: where to save mipmaps, defaults to project_path/_mipmaps
+
+    additional optional named arguments:
+    project_paths: iterable of multiple project paths, indexed by zlevel
+    use_positions: use the transforms from the positions.txt file
+    """
+
+    def __init__(
+        self, *args, project_paths=None, use_positions=False, **kwargs
+    ):
+        try:
+            project_path, *args = args
+        except ValueError:
+            try:
+                project_path = kwargs.pop("project_path")
+            except KeyError:
+                if project_paths is None:
+                    raise TypeError(
+                        f"{self.__class__}() missing required argument: "
+                        f"either 'project_path' or 'project_paths'"
+                    ) from None
+                elif project_paths:
+                    try:
+                        first_key = sorted(project_paths.keys())[0]
+                        project_path = project_paths[first_key]
+                    except AttributeError:
+                        project_path = project_paths[0]
+                else:
+                    raise TypeError(
+                        f"{self.__class__}() requires an iterable with at "
+                        f"least one path for 'project_paths'"
+                    ) from None
+
+        if project_paths is None:
+            project_paths = {0: project_path}
+
+        super().__init__(project_path, *args, **kwargs)
+        self.project_paths = project_paths
+        self.use_positions = use_positions
+
+    def find_positions(self, project_path):
         """try to find the positions.txt file and parse it
 
         the positions.txt file will be used when creating mipmaps and given to
         render as transforms instead of putting all images side by side
-        returns whether the file was found
+        project_path: path of the project where to find the positions.txt
+        returns the positions as dict or None if not found
         """
-        path = self.project_path / POSITIONS_FILENAME
+        path = project_path / POSITIONS_FILENAME
         if not path.exists():
-            path = self.project_path / CORRECTIONS_DIR / POSITIONS_FILENAME
+            path = path / CORRECTIONS_DIR / POSITIONS_FILENAME
             if not path.exists():
-                self.positions = None
-                return False
+                return None
 
-        self.positions = {}
+        positions = {}
         with path.open() as fp:
             fp.readline()
             for line in fp.readlines():
                 match = POSITIONS_LINE_RX.match(line)
                 if match is None:
-                    self.positions = None
+                    positions = None
                     raise RuntimeError(
                         f"found positions.txt file at {path.absolute()} could "
                         "not be parsed"
@@ -67,11 +108,11 @@ class FASTEM_Mipmapper(Mipmapper):
 
                 filename = match.group("file")
                 coords = match.group("x"), match.group("y")
-                self.positions[filename] = [int(coord) for coord in coords]
+                positions[filename] = [int(coord) for coord in coords]
 
-        return True
+        return positions
 
-    def read_tiff(self, output_dir, file_path):
+    def read_tiff(self, output_dir, file_path, is_corrected):
         """read one tiff and generate mipmaps
 
         output_dir: location to put mipmaps
@@ -90,7 +131,7 @@ class FASTEM_Mipmapper(Mipmapper):
             width, length = tags["ImageWidth"].value, tags["ImageLength"].value
 
             # corrected tiffs don't include `DateTime` tag for some reason
-            if self.project_path.name == CORRECTIONS_DIR:
+            if is_corrected:
                 # hacky way to get `DateTime` of corrected tiffs
                 # from the corresponding raw tiff file
                 file_path_to_raw = file_path.parents[1] / file_path.name
@@ -105,16 +146,24 @@ class FASTEM_Mipmapper(Mipmapper):
         return pyramid, percentile, width, length, time
 
     def create_mipmaps(self, args):  # override
-        file_path, project_name, section_name, zvalue, metadata = args
+        (
+            file_path,
+            project_name,
+            section_name,
+            zvalue,
+            metadata,
+            positions,
+            is_corrected,
+        ) = args
         match = TIFFILE_Y_BY_X_RX.fullmatch(file_path.stem)
         row, col = int(match.group("y")), int(match.group("x"))
         y_by_x_str = "x".join(
             [str(xy).zfill(IMAGE_FILENAME_PADDING) for xy in [row, col]]
         )
-        output_dir = self.mipmap_path / y_by_x_str
+        output_dir = self.mipmap_path / f"{zvalue}" / y_by_x_str
         output_dir.mkdir(parents=True, exist_ok=self.clobber)
         pyramid, percentile, width, length, time = self.read_tiff(
-            output_dir, file_path
+            output_dir, file_path, is_corrected
         )
         pixel_size = metadata["pixel_size"] / 1000  # convert nm to um
         layout = renderapi.tilespec.Layout(
@@ -134,13 +183,13 @@ class FASTEM_Mipmapper(Mipmapper):
         pixels = width, length
         mins = [min(0, value) for value in pixels]
         maxs = [max(0, value) for value in pixels]
-        if self.positions is None:
+        if positions is None:
             # assumes no overlap
             coordinates = [xy * px for xy, px in zip([col, row], pixels)]
         else:
             # use saved coordinates from positions.txt
             try:
-                coordinates = self.positions[file_path.name]
+                coordinates = positions[file_path.name]
             except KeyError as exc:
                 raise RuntimeError(
                     f"file at {file_path} was not found in positions.txt"
@@ -153,20 +202,42 @@ class FASTEM_Mipmapper(Mipmapper):
         return [Tile(stack_name, zvalue, spec, time, axes, *percentile)]
 
     def find_files(self):  # override
-        metadata_path = self.project_path / METADATA_FILENAME
+        logging.info(
+            f"reading data from {len(self.project_paths)} section(s) using "
+            f"{self.parallel} threads"
+        )
+        try:
+            iterator = self.project_paths.items()
+        except AttributeError:
+            iterator = enumerate(self.project_paths)
+
+        for zvalue, path in iterator:
+            yield self.find_files_in_section(zvalue, path)
+
+    def find_files_in_section(self, zvalue, path):
+        metadata_path = path / METADATA_FILENAME
         with metadata_path.open() as fp:
             metadata = yaml.safe_load(fp)
 
-        logging.info(
-            f"reading data from {self.project_path} using {self.parallel} "
-            f"threads"
-        )
-        zvalue = 0
-        if self.project_path.name == CORRECTIONS_DIR:
-            *_, project_name, section_name, _ = self.project_path.parts
+        is_corrected = path.name == CORRECTIONS_DIR
+        if is_corrected:
+            *_, project_name, section_name, _ = path.parts
             section_name += "_" + CORRECTIONS_DIR
         else:
-            *_, project_name, section_name = self.project_path.parts
+            *_, project_name, section_name = path.parts
 
-        for file_path in self.project_path.glob(TIFFILE_GLOB):
-            yield file_path, project_name, section_name, zvalue, metadata
+        if self.use_positions:
+            positions = self.find_positions(path)
+        else:
+            positions = None
+
+        for file_path in path.glob(TIFFILE_GLOB):
+            yield (
+                file_path,
+                project_name,
+                section_name,
+                zvalue,
+                metadata,
+                positions,
+                is_corrected,
+            )
