@@ -212,7 +212,8 @@ class FASTEM_Mipmapper(Mipmapper):
             iterator = enumerate(self.project_paths)
 
         for zvalue, path in iterator:
-            yield self.find_files_in_section(zvalue, path)
+            for items in self.find_files_in_section(zvalue, path):
+                yield items
 
     def find_files_in_section(self, zvalue, path):
         metadata_path = path / METADATA_FILENAME
