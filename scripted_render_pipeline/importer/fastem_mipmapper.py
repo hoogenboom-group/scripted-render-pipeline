@@ -27,8 +27,6 @@ _rx_number_part = rf"\d{{{IMAGE_FILENAME_PADDING}}}"
 TIFFILE_Y_BY_X_RX = re.compile(
     rf"(?P<y>{_rx_number_part})_(?P<x>{_rx_number_part})_0"
 )
-STACK_BAD_CHARACTER_RX = re.compile(r"[^0-9a-zA-Z_]+")
-STACK_BAD_CHARACTER_REPLACEMENT = "_"
 POSITIONS_LINE_RX = re.compile(
     rf"(?P<file>{_rx_number_part}_{_rx_number_part}_0.tiff) at "
     r"(?P<x>\d+), (?P<y>\d+)"
