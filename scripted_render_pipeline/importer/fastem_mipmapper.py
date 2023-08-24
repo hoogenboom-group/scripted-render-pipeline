@@ -15,6 +15,7 @@ SCOPE_ID = "FASTEM"
 METADATA_FILENAME = "mega_field_meta_data.yaml"
 POSITIONS_FILENAME = "positions.txt"
 CORRECTIONS_DIR = "corrected"
+DEFAULT_STACK_NAME = "raw"
 IMAGE_FILENAME_PADDING = 3
 TIFFILE_GLOB = (
     "[0-9]" * IMAGE_FILENAME_PADDING
@@ -196,9 +197,11 @@ class FASTEM_Mipmapper(Mipmapper):
                 ) from exc
 
         axes = [Axis(*item) for item in zip(mins, maxs, coordinates)]
-        stack_name = STACK_BAD_CHARACTER_RX.sub(
-            STACK_BAD_CHARACTER_REPLACEMENT, section_name
-        )
+        if is_corrected:
+            stack_name = CORRECTIONS_DIR
+        else:
+            stack_name = DEFAULT_STACK_NAME
+
         return [Tile(stack_name, zvalue, spec, time, axes, *percentile)]
 
     def find_files(self):  # override
