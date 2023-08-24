@@ -224,7 +224,6 @@ class FASTEM_Mipmapper(Mipmapper):
         is_corrected = path.name == CORRECTIONS_DIR
         if is_corrected:
             *_, project_name, section_name, _ = path.parts
-            section_name += "_" + CORRECTIONS_DIR
         else:
             *_, project_name, section_name = path.parts
 
