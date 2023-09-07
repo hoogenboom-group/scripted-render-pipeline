@@ -15,7 +15,7 @@ keywords = [
 ]
 description = "automated pipeline interfacing with render-ws rest api"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
