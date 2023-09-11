@@ -107,7 +107,9 @@ class CLEM_Mipmapper(Mipmapper):
         section_name: name of this stack
         zvalue: z height of this section
         """
-        channel = page.tags["PageName"].value
+        tags = page.tags
+        channel = tags["PageName"].value
+        width, height = tags["ImageWidth"].value, tags["ImageLength"].value
         element = image_elements_by_name[channel]
         new_root = copy.copy(root)
         for other in image_elements_by_name.values():
@@ -231,6 +233,8 @@ class CLEM_Mipmapper(Mipmapper):
         spec = renderapi.tilespec.TileSpec(
             imagePyramid=pyramid,
             layout=layout,
+            width=width,
+            height=height,
             tforms=tforms,
         )
         return Tile(name, zvalue, spec, time, axes, *percentile)
