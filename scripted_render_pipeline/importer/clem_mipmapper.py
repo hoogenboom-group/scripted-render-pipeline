@@ -223,7 +223,7 @@ class CLEM_Mipmapper(Mipmapper):
 
         # take the x pixel size only, transform is applied for scale difference
         layout = renderapi.tilespec.Layout(
-            sectionId=f"{name}/{section_name}",
+            sectionId=f"{section_name}",
             scopeId=modelname,
             cameraId=detectorname,
             pixelsize=float(x_size),
