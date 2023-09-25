@@ -8,14 +8,14 @@ import pathlib
 from ..basic_auth import load_auth
 from .connecter import Connecter
 from .CATMAID_exporter import CATMAID_Exporter
-from .WK_exporter import WK_Exporter
+# from .WK_exporter import WK_Exporter
 
 # render properties
 HOST = "https://sonic.tnw.tudelft.nl"
-OWNER = "rlane"
-PROJECT = "20230523_singleholder_Earthworm_03_partial_partial_test"
-STACKS_2_EXPORT = "ROA_1"
-CLIENT_SCRIPTS = pathlib.Path.home() / "catmaid/render/render-ws-java-client/src/main/scripts"
+OWNER = "akievits"
+PROJECT = "20230914_RP_exocrine_partial_test"
+STACKS_2_EXPORT = ["raw"] # list
+CLIENT_SCRIPTS = "/home/catmaid/render/render-ws-java-client/src/main/scripts"
 
 # script properties
 PARALLEL = 40  # read this many images in parallel to optimise io usage
@@ -24,7 +24,7 @@ CLOBBER = True  # set to false to fail if data would be overwritten
 REMOTE = False  # set to false if ran locally
 NAS_SHARE_PATH = pathlib.Path.home() / "shares/long_term_storage"
 SERVER_STORAGE_PATH_STR = "/long_term_storage/"
-EXPORT_TYPE = "WEBKNOSSOS"  # "WEBKNOSSOS" or "CATMAID"
+EXPORT_TYPE = "CATMAID"  # "WEBKNOSSOS" or "CATMAID"
 
 # export directories
 CATMAID_DIR = (
@@ -38,14 +38,15 @@ WK_DIR = (
 
 def _main():
     auth = load_auth()
-    connecter = Connecter(HOST, OWNER, PROJECT, CLIENT_SCRIPTS, auth) # Connect to render-ws
-    render_kwargs = Connecter.make_kwargs()
+    connecter = Connecter(HOST, OWNER, PROJECT, auth) # Connect to render-ws
+    RENDER = connecter.get_render_info()
 
     match EXPORT_TYPE:
         case "WEBKNOSSOS":
-            exporter = WK_Exporter(PROJECT, WK_DIR, PARALLEL, CLOBBER)
+            # exporter = WK_Exporter(PROJECT, WK_DIR, PARALLEL, CLOBBER)
+            pass
         case "CATMAID":
-            exporter = CATMAID_Exporter(CATMAID_DIR, PARALLEL, CLOBBER, **render_kwargs)
+            exporter = CATMAID_Exporter(CATMAID_DIR, RENDER, CLIENT_SCRIPTS, PARALLEL, CLOBBER)
         case _:
             raise RuntimeError(f"Export format not supported! '{EXPORT_TYPE}'")
     exporter.export_stacks(STACKS_2_EXPORT)
