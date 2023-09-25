@@ -8,7 +8,7 @@ import pathlib
 from ..basic_auth import load_auth
 from .connecter import Connecter
 from .CATMAID_exporter import CATMAID_Exporter
-# from .WK_exporter import WK_Exporter
+from .WK_exporter import WK_Exporter
 
 # render properties
 HOST = "https://sonic.tnw.tudelft.nl"
@@ -16,6 +16,7 @@ OWNER = "akievits"
 PROJECT = "20230914_RP_exocrine_partial_test"
 STACKS_2_EXPORT = ["raw"] # list
 CLIENT_SCRIPTS = "/home/catmaid/render/render-ws-java-client/src/main/scripts"
+WK_CLIENT_SCRIPT = "/opt/webknossos/tools/cube.sh"
 
 # script properties
 PARALLEL = 40  # read this many images in parallel to optimise io usage
@@ -24,7 +25,7 @@ CLOBBER = True  # set to false to fail if data would be overwritten
 REMOTE = False  # set to false if ran locally
 NAS_SHARE_PATH = pathlib.Path.home() / "shares/long_term_storage"
 SERVER_STORAGE_PATH_STR = "/long_term_storage/"
-EXPORT_TYPE = "CATMAID"  # "WEBKNOSSOS" or "CATMAID"
+EXPORT_TYPE = "WEBKNOSSOS"  # "WEBKNOSSOS" or "CATMAID"
 
 # export directories
 CATMAID_DIR = (
@@ -43,8 +44,7 @@ def _main():
 
     match EXPORT_TYPE:
         case "WEBKNOSSOS":
-            # exporter = WK_Exporter(PROJECT, WK_DIR, PARALLEL, CLOBBER)
-            pass
+            exporter = WK_Exporter(WK_DIR, CATMAID_DIR, RENDER, CLIENT_SCRIPTS, WK_CLIENT_SCRIPT, PARALLEL, CLOBBER)
         case "CATMAID":
             exporter = CATMAID_Exporter(CATMAID_DIR, RENDER, CLIENT_SCRIPTS, PARALLEL, CLOBBER)
         case _:

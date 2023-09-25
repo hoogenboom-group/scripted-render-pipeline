@@ -134,8 +134,7 @@ class CATMAID_Exporter():
             # Set up `BoxClient` client script call
             call_run_ws_client_partial = partial(self.call_run_ws_client,
                                                  className='org.janelia.render.client.BoxClient',
-                                                 java_args=java_args,
-                                                 **self.render)
+                                                 java_args=java_args)
             # render_catmaid_boxes_partial = partial(self.render_catmaid_boxes,
             #                                        client_script=fp_client,
             #                                        java_args=java_args)
@@ -145,16 +144,15 @@ class CATMAID_Exporter():
                 pool.map(call_run_ws_client_partial, z_values)
                 # pool.map(render_catmaid_boxes_partial, z_values)
 
-    def call_run_ws_client(self, z, className, java_args, **kwargs):
+    def call_run_ws_client(self, z, className, java_args):
             """Wrapper for `call_run_ws_client` script to enable multiprocessing"""
             _args = [f'{z:.0f}'] + java_args # specify z-level
             print(_args)
             # Call "render-ws-client"
             renderapi.client.client_calls.call_run_ws_client(className,
                                                              add_args=_args,
-                                                             memGB='2G',
                                                              client_script="/home/catmaid/render/render-ws-java-client/src/main/scripts/run_ws_client.sh",
-                                                             renderclient=kwargs
+                                                             **self.render,
                                                              )
 
     def render_catmaid_boxes(self, z, client_script, java_args):
