@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 import renderapi
 import requests
 
@@ -12,11 +13,11 @@ class Connecter:
     auth: http basic auth credentials, tuple of (username, password)
     """
 
-    def __init__(self, host, owner, project, client_scripts, auth=None):
+    def __init__(self, host, owner, project, auth=None):
         session = requests.Session()
         session.auth = auth
         self.render = dict(
-            host=host, owner=owner, project=project, client_scripts=client_scripts, session=session,
+            host=host, owner=owner, project=project, session=session
         )
         self.host = host
         self.owner = owner
@@ -26,11 +27,7 @@ class Connecter:
             f"connecting to {self.host} for {self.owner} "
             f"in {self.project}"
             )
-    
-    def make_kwargs(self):
-        """Creates a renderapi.connect.Render object and makes the keyword arguments
-
-        returns kwargs"""
-        render_object = renderapi.connect(self.render)
-        return render_object.make_kwargs()
+        
+    def get_render_info(self):
+        return self.render
 
