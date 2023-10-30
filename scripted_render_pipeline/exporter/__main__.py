@@ -25,7 +25,7 @@ CLOBBER = True  # set to false to fail if data would be overwritten
 REMOTE = False  # set to false if ran locally
 NAS_SHARE_PATH = pathlib.Path.home() / "shares/long_term_storage"
 SERVER_STORAGE_PATH_STR = "/long_term_storage/"
-EXPORT_TYPE = "WEBKNOSSOS"  # "WEBKNOSSOS" or "CATMAID"
+EXPORT_TYPE = "CATMAID"  # "WEBKNOSSOS" or "CATMAID"
 
 # export directories
 CATMAID_DIR = (

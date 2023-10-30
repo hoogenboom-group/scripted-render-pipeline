@@ -117,6 +117,8 @@ class CATMAID_Exporter():
                                                    height=self.h_tile,
                                                    fmt=self.fmt,
                                                    max_level=maxest_level,
+                                                   localhost='http://sonic.tnw.tudelft.nl',
+                                                   port=8081,
                                                    **self.render)
             # Add CATMAID export parameters to collection
             export_data[stack] = export_params
@@ -151,8 +153,8 @@ class CATMAID_Exporter():
             # Call "render-ws-client"
             renderapi.client.client_calls.call_run_ws_client(className,
                                                              add_args=_args,
+                                                             memGB='2G',
                                                              client_script="/home/catmaid/render/render-ws-java-client/src/main/scripts/run_ws_client.sh",
-                                                             **self.render,
                                                              )
 
     def render_catmaid_boxes(self, z, client_script, java_args):
@@ -261,7 +263,8 @@ class CATMAID_Exporter():
 class CatmaidBoxesParameters(ArgumentParameters):
     """Subclass of `ArgumentParameters` for facilitating CATMAID export client script"""
     def __init__(self, stack, root_directory,
-                 width=1024, height=1024, fmt='png', max_level=0, **kwargs):
+                 width=1024, height=1024, fmt='png', max_level=0, 
+                 localhost=None, port=None, **kwargs):
 
         super(CatmaidBoxesParameters, self).__init__(**kwargs)
 
@@ -271,10 +274,8 @@ class CatmaidBoxesParameters(ArgumentParameters):
         self.width = width
         self.format = fmt
         self.maxLevel = max_level
-        # port = render_kwargs.get('port')
-        host = kwargs["host"]
-        self.baseDataUrl = renderapi.render.format_baseurl(host,
-                                                           port=None)
+        self.baseDataUrl = renderapi.render.format_baseurl(host=localhost,
+                                                           port=port)
         self.owner = kwargs["owner"]
         self.project = kwargs["project"]
 
