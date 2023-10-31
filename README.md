@@ -10,6 +10,8 @@ this will install required dependencies from PyPI as well
 ### usage
 `render_import`  for importing to render
 
+`render_export`  for exporting to CATMAID or WebKnossos
+
 `render_basic_auth {show,save}`  for managing http basic auth credentials
 
 ### usage as module
