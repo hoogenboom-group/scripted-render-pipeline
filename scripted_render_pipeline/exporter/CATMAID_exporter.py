@@ -88,7 +88,7 @@ class CATMAID_Exporter():
         logging.info(
             f"Making project file..."
         )
-        project_yaml = self.create_project_file(stacks_2_export, export_data)
+        project_yaml, project_data = self.create_project_file(stacks_2_export, export_data)
         out = f"""\
         {project_yaml}
         --------\
@@ -216,9 +216,9 @@ class CATMAID_Exporter():
             # Get resolution data 
             stack_metadata = renderapi.stack.get_full_stack_metadata(stack=stack,
                                                                      **self.render)
-            resolution = (1e3*np.round(stack_metadata['currentVersion']['stackResolutionX'], 5),
-                        1e3*np.round(stack_metadata['currentVersion']['stackResolutionY'], 5),
-                        1e3*np.round(stack_metadata['currentVersion']['stackResolutionZ'], 5))
+            resolution = (np.round(1e3*stack_metadata['currentVersion']['stackResolutionX'], 5),
+                        np.round(1e3*stack_metadata['currentVersion']['stackResolutionY'], 5),
+                        np.round(stack_metadata['currentVersion']['stackResolutionZ'], 5))
             # Get metadata
             ts = sample(renderapi.tilespec.get_tile_specs_from_stack(stack=stack,
                                                                      **self.render), 1)[0]
@@ -258,8 +258,7 @@ class CATMAID_Exporter():
         yaml.indent(mapping=2, offset=0)
         yaml.dump(project_data, project_yaml)
         yaml.dump(project_data, sys.stdout)
-        return project_yaml
-
+        return project_yaml, project_data
 class CatmaidBoxesParameters(ArgumentParameters):
     """Subclass of `ArgumentParameters` for facilitating CATMAID export client script"""
     def __init__(self, stack, root_directory,

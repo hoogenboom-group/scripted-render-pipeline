@@ -21,11 +21,12 @@ WK_CLIENT_SCRIPT = "/opt/webknossos/tools/cube.sh"
 # script properties
 PARALLEL = 40  # read this many images in parallel to optimise io usage
 CLOBBER = True  # set to false to fail if data would be overwritten
-# Z_RESOLUTION = 100  # DEPRICATED: thickness of sections should be render-ws already
+# Z_RESOLUTION = 100  # DEPRICATED: thickness of sections should be in render-ws already
 REMOTE = False  # set to false if ran locally
+REMOVE_CATMAID_DIR = False # set to True if CATMAID directory should be removed (only when exporting to WebKnossos)
 NAS_SHARE_PATH = pathlib.Path.home() / "shares/long_term_storage"
 SERVER_STORAGE_PATH_STR = "/long_term_storage/"
-EXPORT_TYPE = "CATMAID"  # "WEBKNOSSOS" or "CATMAID"
+EXPORT_TYPE = "WEBKNOSSOS" # "WEBKNOSSOS" or "CATMAID"
 
 # export directories
 CATMAID_DIR = (
@@ -44,7 +45,7 @@ def _main():
 
     match EXPORT_TYPE:
         case "WEBKNOSSOS":
-            exporter = WK_Exporter(WK_DIR, CATMAID_DIR, RENDER, CLIENT_SCRIPTS, WK_CLIENT_SCRIPT, PARALLEL, CLOBBER)
+            exporter = WK_Exporter(WK_DIR, CATMAID_DIR, RENDER, CLIENT_SCRIPTS, WK_CLIENT_SCRIPT, PARALLEL, CLOBBER, REMOVE_CATMAID_DIR)
         case "CATMAID":
             exporter = CATMAID_Exporter(CATMAID_DIR, RENDER, CLIENT_SCRIPTS, PARALLEL, CLOBBER)
         case _:

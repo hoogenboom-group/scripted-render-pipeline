@@ -5,6 +5,7 @@ import numpy as np
 import renderapi
 import subprocess
 import os
+from ruamel.yaml import YAML
 
 from .CATMAID_exporter import CATMAID_Exporter
 
@@ -15,7 +16,7 @@ from .CATMAID_exporter import CATMAID_Exporter
 class WK_Exporter():
     def __init__(
         self, wk_dir, catmaid_dir, render, client_scripts, 
-        wk_client_script, parallel=1, clobber=False 
+        wk_client_script, parallel=1, clobber=False, remove_CATMAID_dir=False, 
     ):
         self.remote = False
         self.fmt = 'png' # Set format, standard is 'png'
@@ -26,6 +27,7 @@ class WK_Exporter():
         self.wk_client_script = wk_client_script
         self.parallel = parallel
         self.clobber = clobber
+        self.remove_catmaid_dir = remove_CATMAID_dir
         self.render = render # render connect object
 
         self.host = render["host"]
@@ -60,12 +62,19 @@ class WK_Exporter():
         stacks_2_export = args
         if type(stacks_2_export) is not list:
             stacks_2_export = [stacks_2_export]
+        try:
+            no_stacks = len(stacks_2_export)
+            if no_stacks > 1:
+                raise MoreThanOneStack
+        except MoreThanOneStack:
+            print('Exporting more than one stack to WebKnossos is not supported')
+
         # Check if catmaid_dir exists, if yes go directly to WK conversion
         if not os.path.isdir(self.catmaid_dir):
             # Create CATMAID_exporter class instance 
             CATMAID_exporter = CATMAID_Exporter(self.catmaid_dir, self.render, self.client_scripts, 
                                                 self.parallel, self.clobber)
-            export_data = self.set_export_parameters(stacks_2_export) # Set up CATMAID export parameters
+            export_data = CATMAID_exporter.set_export_parameters(stacks_2_export) # Set up CATMAID export parameters
             z_values = np.unique([renderapi.stack.get_z_values_for_stack(stack,
                                                                         **self.render)\
                                 for stack in stacks_2_export])
@@ -81,35 +90,47 @@ class WK_Exporter():
                 f"Resorting tiles..."
             )
             CATMAID_exporter.resort_tiles(stacks_2_export, z_values)
-            # Call WebKnossos conversion script
+            CATMAID_exporter.make_thumbnails(stacks_2_export, z_values)
             logging.info(
-                f"Converting to .wk format...")
-        self.call_wk_conversion_script()
+                f"Making project file..."
+            )
+            project_yaml, project_data = CATMAID_exporter.create_project_file(stacks_2_export, export_data)
+        else:
+            yaml = YAML()
+            project_data = yaml.load(self.catmaid_dir / 'project.yaml')
+        # Extract voxel size
+        voxel_size = eval(project_data['project']['stacks'][0]['resolution'])
+        voxel_size = tuple(map(int, voxel_size)) # WK cuber requires integers?
+        print(voxel_size)
+        # Call WebKnossos conversion script
+        logging.info(
+            f"Converting to .wk format...")
+        self.call_wk_conversion_script(stacks_2_export, layer_name="color", voxel_size=voxel_size)
         logging.info(
             f"Conversion done...")
 
-    def call_wk_conversion_script(self, remove_CATMAID_dir=False):
-        """Simple call of CATMAID to WK format conversion script via shell
+    def call_wk_conversion_script(self, stacks_2_export, layer_name="color", voxel_size=(4, 4, 90)):
+        """Wrapper for CATMAID to WK format conversion script
 
         returns nothing
         """
-        # Virtual environment
-        virtualenv_activate = '/opt/webknossos/tool/bin/activate'
-
-        # Call WK shell script in CATMAID project directory
-        shell_command = [self.wk_client_script, str(self.catmaid_dir)]
         try:
-            # Use 'source' to activate the virtual environment
-            activation_cmd = f'. {virtualenv_activate} && {shell_command}'
             # Run the command
-            subprocess.run(activation_cmd, shell=True, check=True)
+            subprocess.run([f"{self.wk_client_script}", f"{self.catmaid_dir}/{stacks_2_export[0]}", f"{self.project}", 
+                            f"{layer_name}", f"{voxel_size[0]},{voxel_size[1]},{voxel_size[2]}"]
+                            )
         except subprocess.CalledProcessError as e:
             print(f"Error: {e}")
 
         # (Optionally) remove CATMAID directory because it has become obsolete
-        if remove_CATMAID_dir:
+        if self.remove_catmaid_dir:
             try:
                 os.rmdir(self.catmaid_dir)
             except:
                 print('Error deleting CATMAID directory')
+
+# define Python user-defined exceptions
+class MoreThanOneStack(Exception):
+    "Raised when the input value is less than 18"
+    pass
 
