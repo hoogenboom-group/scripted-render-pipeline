@@ -216,9 +216,9 @@ class CATMAID_Exporter():
             # Get resolution data 
             stack_metadata = renderapi.stack.get_full_stack_metadata(stack=stack,
                                                                      **self.render)
-            resolution = (np.round(stack_metadata['currentVersion']['stackResolutionX'], 5),
-                        np.round(stack_metadata['currentVersion']['stackResolutionY'], 5),
-                        np.round(stack_metadata['currentVersion']['stackResolutionZ'], 5))
+            resolution = (1e3*np.round(stack_metadata['currentVersion']['stackResolutionX'], 5),
+                        1e3*np.round(stack_metadata['currentVersion']['stackResolutionY'], 5),
+                        1e3*np.round(stack_metadata['currentVersion']['stackResolutionZ'], 5))
             # Get metadata
             ts = sample(renderapi.tilespec.get_tile_specs_from_stack(stack=stack,
                                                                      **self.render), 1)[0]
@@ -241,7 +241,7 @@ class CATMAID_Exporter():
                     "tile_height": self.h_tile,
                     "tile_source_type": 1,
                     "fileextension": f"{self.fmt}",
-                    "url": f"https://sonic.tnw.tudelft.nl{(self.catmaid_dir / stack).as_posix()}"
+                    "url": f"https://sonic.tnw.tudelft.nl{(self.catmaid_dir / stack).as_posix()}/"
                 }]
             }
             stack_data.append(stack_datum)
