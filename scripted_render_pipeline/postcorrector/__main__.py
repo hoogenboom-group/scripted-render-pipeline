@@ -4,8 +4,7 @@ relies on provided parameters being set in the script for now
 """
 import logging
 import pathlib
-# from scripted_render_pipeline.postcorrector.post_corrector import Post_Corrector
-from post_corrector import Post_Corrector
+from .post_corrector import Post_Corrector
 
 # script properties
 PROJECT = "20230914_RP_exocrine_partial_test"
