@@ -14,6 +14,8 @@ this will install required dependencies from PyPI as well
 
 `render_basic_auth {show,save}`  for managing http basic auth credentials
 
+`post_correct`  for post-corrrecting FAST-EM images (prior to import)
+
 ### usage as module
 `python -m scripted_render_pipeline.importer`  for importing to render
 
