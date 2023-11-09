@@ -17,7 +17,7 @@ SCOPE_ID = "FASTEM"
 METADATA_FILENAME = "mega_field_meta_data.yaml"
 POSITIONS_FILENAME = "positions.txt"
 CORRECTIONS_DIR = "corrected"
-POST_CORRECTIONS_DIR = "post-correction"
+POST_CORRECTIONS_DIR = "postcorrection"
 IMAGE_FILENAME_PADDING = 3
 TIFFILE_GLOB = (
     "[0-9]" * IMAGE_FILENAME_PADDING
@@ -177,7 +177,7 @@ class Post_Corrector():
         # Set target output directory
         post_correction_dir = filepaths[0].parent / POST_CORRECTIONS_DIR
         post_correction_dir.mkdir(parents=True, exist_ok=self.clobber)
-        # Copy metadata.yaml because render_import requires it
+        # Copy metadata because render_import requires it
         shutil.copyfile(filepaths[0].parent / METADATA_FILENAME, post_correction_dir / METADATA_FILENAME)
 
         # Estimate background by averaging over clean images
