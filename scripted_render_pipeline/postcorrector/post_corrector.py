@@ -1,4 +1,5 @@
 import logging
+import shutil
 
 import numpy as np
 import tifffile
@@ -176,6 +177,8 @@ class Post_Corrector():
         # Set target output directory
         post_correction_dir = filepaths[0].parent / POST_CORRECTIONS_DIR
         post_correction_dir.mkdir(parents=True, exist_ok=self.clobber)
+        # Copy metadata.yaml because render_import requires it
+        shutil.copyfile(filepaths[0].parent / METADATA_FILENAME, post_correction_dir / METADATA_FILENAME)
 
         # Estimate background by averaging over clean images
         for file_path in fps_clean:
