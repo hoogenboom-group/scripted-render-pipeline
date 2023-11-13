@@ -4,7 +4,6 @@ import shutil
 
 import numpy as np
 import tifffile
-from PIL import Image
 from skimage.transform import pyramid_gaussian
 from tqdm import tqdm
 
@@ -246,22 +245,22 @@ class Post_Corrector:
             max_layer=n_layers,
             preserve_range=True,
         )
-        # Extract layers from pyramid and force uint16
-        layers = [
-            Image.fromarray(layer.astype(np.uint16)) for layer in pyramid
-        ]
         # Handle metadata
         if metadata is None:
             metadata = {}
-        im = layers[0]
-        im.save(
-            filepath.as_posix(),
-            append_images=layers[1:],
-            tiffinfo=metadata,
-            save_all=True,
+
+        # save pyramid and force uint16
+        tifffile.imwrite(
+            filepath,
+            np.array(pyramid, dtype=np.uint16),
+            metadata=metadata,
+            photometric="minisblack",
+            predictor=True,
+            # compression="zlib",
+            # compressionargs={"level": 8},
         )
 
-    def find_files(self):  # override
+    def find_files(self):
         logging.info(
             f"reading data from {len(self.project_paths)} section(s) using "
             f"{min(self.parallel, len(self.project_paths))} threads"
