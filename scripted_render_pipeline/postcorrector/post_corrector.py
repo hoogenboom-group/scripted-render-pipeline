@@ -232,10 +232,6 @@ class Post_Corrector:
             Number of layers
         options : dict (optional)
             Extra optional metadata
-
-        References
-        ----------
-        [1] https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html#saving-tiff-images
         """
         # Generate image pyramid
         pyramid = pyramid_gaussian(
