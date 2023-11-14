@@ -50,6 +50,7 @@ format = [
 "Bug Tracker" = "https://github.com/hoogenboom-group/scripted-render-pipeline/issues"
 
 [project.scripts]
+post_correct = "scripted_render_pipeline.postcorrector:__main__._main"
 render_import = "scripted_render_pipeline.importer:__main__._main"
 render_export = "scripted_render_pipeline.exporter:__main__._main"
 render_basic_auth = "scripted_render_pipeline:basic_auth._main"
