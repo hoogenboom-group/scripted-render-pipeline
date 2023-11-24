@@ -70,7 +70,7 @@ class WK_Exporter():
             print('Exporting more than one stack to WebKnossos is not supported')
 
         # Check if catmaid_dir exists, if yes go directly to WK conversion
-        if not os.path.isdir(self.catmaid_dir):
+        if not os.path.isdir(self.catmaid_dir / stacks_2_export[0]):
             # Create CATMAID_exporter class instance 
             CATMAID_exporter = CATMAID_Exporter(self.catmaid_dir, self.render, self.client_scripts, 
                                                 self.parallel, self.clobber)
