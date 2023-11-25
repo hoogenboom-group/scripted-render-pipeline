@@ -105,7 +105,7 @@ class WK_Exporter():
         # Call WebKnossos conversion script
         logging.info(
             f"Converting to .wk format...")
-        self.call_wk_conversion_script(stacks_2_export, layer_name="color", voxel_size=voxel_size)
+        self.call_wk_conversion_script(stacks_2_export, layer_name=stacks_2_export, voxel_size=voxel_size)
         logging.info(
             f"Conversion done...")
 
