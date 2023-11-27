@@ -216,8 +216,8 @@ class CATMAID_Exporter():
             # Get resolution data 
             stack_metadata = renderapi.stack.get_full_stack_metadata(stack=stack,
                                                                      **self.render)
-            resolution = (np.round(1e3*stack_metadata['currentVersion']['stackResolutionX'], 5),
-                        np.round(1e3*stack_metadata['currentVersion']['stackResolutionY'], 5),
+            resolution = (np.round(stack_metadata['currentVersion']['stackResolutionX'], 5),
+                        np.round(stack_metadata['currentVersion']['stackResolutionY'], 5),
                         np.round(stack_metadata['currentVersion']['stackResolutionZ'], 5))
             # Get metadata
             ts = sample(renderapi.tilespec.get_tile_specs_from_stack(stack=stack,
