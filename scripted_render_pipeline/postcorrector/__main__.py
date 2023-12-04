@@ -4,6 +4,7 @@ relies on provided parameters being set in the script for now
 """
 import logging
 import pathlib
+
 from .post_corrector import Post_Corrector
 
 # script properties
@@ -14,10 +15,9 @@ REMOTE = False  # set to false if ran locally
 NAS_SHARE_PATH = pathlib.Path.home() / "shares/long_term_storage"
 SERVER_STORAGE_PATH_STR = "/long_term_storage/"
 PROJECT_PATH = (
-    (NAS_SHARE_PATH if REMOTE else pathlib.Path(SERVER_STORAGE_PATH_STR))
-    / f"akievits/FAST-EM/{PROJECT}"
-)
-MULTIPLE_SECTIONS = True # Set to False for a single section
+    NAS_SHARE_PATH if REMOTE else pathlib.Path(SERVER_STORAGE_PATH_STR)
+) / f"akievits/FAST-EM/{PROJECT}"
+MULTIPLE_SECTIONS = True  # Set to False for a single section
 
 # Processing parameters
 PCT = 0.1
@@ -28,14 +28,20 @@ if MULTIPLE_SECTIONS:
 else:
     PROJECT_PATHS = None
 
-def _main():    
-    post_corrector = Post_Corrector(PROJECT_PATH, PARALLEL, CLOBBER, 
-                                    pct=PCT, a=A, project_paths=PROJECT_PATHS)
-    
+
+def _main():
+    post_corrector = Post_Corrector(
+        PROJECT_PATH,
+        PARALLEL,
+        CLOBBER,
+        pct=PCT,
+        a=A,
+        project_paths=PROJECT_PATHS,
+    )
+
     post_corrector.post_correct_all_sections()
-    logging.info(
-        "post-correction completed"
-        )
+    logging.info("post-correction completed")
+
 
 if __name__ == "__main__":
     logging.basicConfig(

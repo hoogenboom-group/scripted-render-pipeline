@@ -246,15 +246,16 @@ class Post_Corrector:
             metadata = {}
 
         # save pyramid and force uint16
-        tifffile.imwrite(
-            filepath,
-            np.array(pyramid, dtype=np.uint16),
-            metadata=metadata,
-            photometric="minisblack",
-            predictor=True,
-            # compression="zlib",
-            # compressionargs={"level": 8},
-        )
+        with tifffile.TiffWriter(filepath) as writer:
+            for data in pyramid:
+                writer.write(
+                    np.array(data, dtype=np.uint16),
+                    metadata=metadata,
+                    photometric="minisblack",
+                    predictor=True,
+                    # compression="zlib",
+                    # compressionargs={"level": 8},
+                )
 
     def find_files(self):
         logging.info(
