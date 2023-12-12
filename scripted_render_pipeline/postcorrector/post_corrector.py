@@ -253,8 +253,8 @@ class Post_Corrector:
                     metadata=metadata,
                     photometric="minisblack",
                     predictor=True,
-                    # compression="zlib",
-                    # compressionargs={"level": 8},
+                    compression="zlib",
+                    compressionargs={"level": 6},
                 )
 
     def find_files(self):
