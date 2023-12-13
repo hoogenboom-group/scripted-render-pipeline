@@ -14,7 +14,7 @@ SCOPE_ID = "FASTEM"
 
 METADATA_FILENAME = "mega_field_meta_data.yaml"
 POSITIONS_FILENAME = "positions.txt"
-CORRECTIONS_DIR = "postcorrected"
+CORRECTIONS_DIR = "postcorrection"
 DEFAULT_STACK_NAME = "raw"
 IMAGE_FILENAME_PADDING = 3
 TIFFILE_GLOB = (
