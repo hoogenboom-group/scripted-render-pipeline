@@ -41,6 +41,21 @@ xml.etree.ElementTree.register_namespace("", OME_NAMESPACE_URI)
 
 
 class CLEM_Mipmapper(Mipmapper):
+    """creates mipmaps from images and collects tile specs for the CLEM
+
+    project_path: path to project to make mipmaps for
+    parallel: how many threads to use in parallel, optimises io usage
+    clobber: wether to allow overwriting of existing mipmaps
+    mipmap_path: where to save mipmaps, defaults to project_path/_mipmaps
+
+    additional optional named arguments:
+    invert_em_contrast: inverts the image for the em channel to re
+    """
+
+    def __init__(self, *args, invert_em_contrast=True, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.invert_em_contrast = invert_em_contrast
+
     def create_mipmaps(self, args):  # override
         file_path, section_name, zvalue, datatype_dir = args
         match = TIFFILE_X_BY_Y_RX.fullmatch(file_path.stem)
@@ -133,7 +148,9 @@ class CLEM_Mipmapper(Mipmapper):
         pixels = element.find("Pixels", NAMESPACE)
         if channel == "Secondary electrons":
             name = DIR_BY_DATATYPE[datatype_dir]
-            image = skimage.util.invert(image)  # invert the SEM image
+            if datatype_dir != "CLEM-grid":
+                image = skimage.util.invert(image)  # invert the SEM image
+
             intensity_clip = 1, 99
         elif (
             channel.startswith("Filtered colour ")

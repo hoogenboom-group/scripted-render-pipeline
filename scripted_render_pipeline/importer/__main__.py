@@ -31,6 +31,8 @@ PROJECT_PATH = (
     / f"akievits/FAST-EM/tests/{PROJECT}" # Path to data
 )
 MIPMAP_TYPE = "FASTEM"  # "CLEM"
+# for fastem datasets only
+USE_POSITIONS = False  # use the automated stitching results
 
 # for FAST-EM datasets only
 USE_POSITIONS = True  # use the automated stitching results from acquisition software
@@ -58,6 +60,7 @@ def _main():
     if not stacks:
         raise RuntimeError("no stacks to upload")
 
+    breakpoint()
     uploader = Uploader(HOST, OWNER, PROJECT, auth, CLOBBER)
     uploader.upload_to_render(stacks, Z_RESOLUTION)
     logging.info("import completed")
