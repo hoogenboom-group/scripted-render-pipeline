@@ -3,9 +3,11 @@ import logging
 import shutil
 
 import numpy as np
+import random
 import tifffile
 from skimage.transform import pyramid_gaussian
 from tqdm import tqdm
+from itertools import zip_longest
 
 SCOPE_ID = "FASTEM"
 METADATA_FILENAME = "mega_field_meta_data.yaml"
@@ -20,6 +22,7 @@ TIFFILE_GLOB = (
     + "_0.tiff"
 )
 RESTORE_MEAN_LEVEL = 32768
+SAMPLE_SIZE = 10
 
 
 class Post_Corrector:
@@ -54,40 +57,86 @@ class Post_Corrector:
 
     def post_correct_all_sections(self):
         """create post-corrected images for all sections"""
+        # Sample N images from each section
+        all_paths = []
+        for filepaths in self.find_files():
+            fp_sample = random.sample(filepaths, SAMPLE_SIZE)
+            all_paths += fp_sample   
+        # Compute MED and MAD from global sample
+        logging.info("Estimating global med and mad values")
+        med = self.get_med(all_paths, pct=self.pct)
+        mad = self.get_mad(all_paths, med=med, pct=self.pct)
+        # Compute correction per section
         futures = set()
+        failed_sections = []
         executor = concurrent.futures.ThreadPoolExecutor(
             max_workers=self.parallel
         )
 
         try:
             for filepaths in self.find_files():
-                future = executor.submit(self.post_correct_section, filepaths)
+                future = executor.submit(self.post_correct_section, filepaths, med, mad)
                 futures.add(future)
 
             for future in tqdm(
                 concurrent.futures.as_completed(futures),
                 desc="post-correcting sections",
                 total=len(futures),
-                unit="sections",
+                unit="section",
                 smoothing=min(100 / len(futures), 0.3),
             ):
                 futures.remove(future)
-                future.result()
+                failed_section = future.result()
+                failed_sections += failed_section
         finally:
             for future in futures:
                 future.cancel()
 
             executor.shutdown()
+    
+        return failed_sections
+        
+    def post_correct_failed_sections(self, failed_sections):
+        """create post-corrected images for all sections that failed initial post-correction"""
+        # Compute correction for failed sections
+        futures = set()
+        executor = concurrent.futures.ThreadPoolExecutor(
+            max_workers=min(self.parallel, len(failed_sections))
+        )
+        filepaths_per_section = (
+            list(path.glob(TIFFILE_GLOB)) for path in failed_sections
+        )
+        try:
+            for filepaths in filepaths_per_section:
+                future = executor.submit(
+                    self.post_correct_failed_section(filepaths)
+                    )
+                futures.add(future)
 
-    def post_correct_section(self, filepaths: list):
+            for future in tqdm(
+                concurrent.futures.as_completed(futures),
+                desc="post-correcting failed sections",
+                total=len(futures),
+                unit="section",
+                smoothing=min(100 / len(futures), 0.3),
+            ):
+                futures.remove(future)
+                
+        finally:
+            for future in futures:
+                future.cancel()
+
+            executor.shutdown()
+        
+
+    def post_correct_section(self, filepaths: list, med, mad):
         """create post_corrected images for one section
 
         filepaths: list of filepaths of raw images in sections
+        med: Median Deviation of percentiles
+        mad: Median Absolute Deviation of percentiles
         """
         fps_clean = []
-        med = self.get_med(filepaths, pct=self.pct)
-        mad = self.get_mad(filepaths, med=med, pct=self.pct)
-
         # Determine non-corrupted images
         for file_path in filepaths:
             with tifffile.TiffFile(file_path) as tiff:
@@ -99,10 +148,14 @@ class Post_Corrector:
                 )
                 if not corrupted:
                     fps_clean.append(file_path)
-
-        # Create post-corrected images based on non-corrupted images
-        self.post_correct(filepaths, fps_clean)
-
+        # Create post-corrected images based on non-corrupted images 
+        # only if sufficient number of clean images is available
+        if len(fps_clean) > 10:
+            self.post_correct(filepaths, fps_clean)
+            return []
+        else:
+            return [filepaths[0].parent] # Path to failed section
+            
     def get_med(self, filepaths, pct=1):
         """Get median value of given percentile of select images"""
         # Collect percentile values
@@ -214,6 +267,65 @@ class Post_Corrector:
             background.astype(np.uint16),
             None,
         )
+    
+    def post_correct_failed_section(self, filepaths: list):
+        """Reapply post-processing corrections to images without correction
+        Correction image is used from nearest section
+
+        Parameters
+        ----------
+
+        filepaths : Filepaths to raw images in one section
+        """
+        # Set target (section) output directory
+        section_dir = filepaths[0].parent
+        post_correction_dir = section_dir / POST_CORRECTIONS_DIR
+        post_correction_dir.mkdir(parents=True, exist_ok=self.clobber)
+        
+        # Copy metadata because render_import requires it
+        shutil.copyfile(
+            section_dir / METADATA_FILENAME,
+            post_correction_dir / METADATA_FILENAME,
+        )
+        # Hacky way to fetch background image from nearest section 
+        # starting with the section index below, then alterating 
+        # sections further above or below the section
+        s_i = self.project_paths.index(section_dir) # Section index
+        lower = self.project_paths[:s_i][::-1] # Reverse 
+        higher = self.project_paths[s_i+1:]
+        paths_2_search = [item for pair in zip_longest(lower, higher) for item in pair] # Pads with NoneType elements
+        paths_2_search = [path for path in paths_2_search if path is not None]
+            
+        # Iterate through nearest adjacent images
+        for dir in paths_2_search:
+            fp_correction = dir / POST_CORRECTIONS_DIR / "sum_of_files.tiff"
+            try: 
+                background = tifffile.imread(fp_correction.as_posix()) # Fails if image does not exists
+            except FileNotFoundError:
+                continue
+            else:
+                break
+        # Iterate through filepaths and perform correction
+        for file_path in filepaths:
+            with tifffile.TiffFile(file_path) as tiff:
+                image = tiff.pages[0].asarray()
+                n_layers = len(tiff.pages)
+                # Subtract background from each raw field
+                # and restore to 16bit mean level
+                post_corrected = (
+                    image - background + RESTORE_MEAN_LEVEL
+                ).astype(np.uint16)
+                # Save corrected field as pyramidal tiff
+                filepath_corrected = post_correction_dir / file_path.name
+                self.save_pyramidal_tiff(
+                    filepath_corrected, post_corrected, n_layers=n_layers
+                )
+        # Save background copy
+        self.save_pyramidal_tiff(
+            post_correction_dir / "sum_of_files.tiff",
+            background.astype(np.uint16),
+            None,
+        )
 
     def save_pyramidal_tiff(
         self, filepath, image, metadata=None, n_layers=5, options=None
@@ -252,9 +364,9 @@ class Post_Corrector:
                     np.array(data, dtype=np.uint16),
                     metadata=metadata,
                     photometric="minisblack",
-                    predictor=True,
-                    compression="zlib",
-                    compressionargs={"level": 6},
+                    # predictor=True,
+                    # compression="zlib",
+                    # compressionargs={"level": 6},
                 )
 
     def find_files(self):
