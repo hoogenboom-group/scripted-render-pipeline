@@ -16,12 +16,12 @@ NAS_SHARE_PATH = pathlib.Path.home() / "shares/long_term_storage"
 SERVER_STORAGE_PATH_STR = "/long_term_storage/"
 PROJECT_PATH = (
     NAS_SHARE_PATH if REMOTE else pathlib.Path(SERVER_STORAGE_PATH_STR)
-) / f"akievits/FAST-EM/tests/{PROJECT}"
+) / f"akievits/FAST-EM/{PROJECT}"
 MULTIPLE_SECTIONS = True  # Set to False for a single section
 
 # Processing parameters
 PCT = 0.1
-A = 3
+A = 1
 
 if MULTIPLE_SECTIONS:
     PROJECT_PATHS = natsorted([p for p in PROJECT_PATH.iterdir() if (p.is_dir() and not p.name.startswith('_'))])

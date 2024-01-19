@@ -23,6 +23,7 @@ TIFFILE_GLOB = (
 )
 RESTORE_MEAN_LEVEL = 32768
 SAMPLE_SIZE = 10
+MIN_CLEAN = 20
 
 
 class Post_Corrector:
@@ -150,7 +151,7 @@ class Post_Corrector:
                     fps_clean.append(file_path)
         # Create post-corrected images based on non-corrupted images 
         # only if sufficient number of clean images is available
-        if len(fps_clean) > 10:
+        if len(fps_clean) > MIN_CLEAN:
             self.post_correct(filepaths, fps_clean)
             return []
         else:
