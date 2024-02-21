@@ -112,17 +112,22 @@ class WK_Exporter():
                     # this might be a bit of a hack, but it should work as it will just skip the exports that already exist I think
                     raise ValueError(f"stack {stack} not found in project file")
 
-        # Extract voxel size
-        voxel_size = eval(project_data['project']['stacks'][0]['resolution'])
-        voxel_size = tuple(map(int, voxel_size))  # WK cuber requires integers?
-        print(voxel_size)
-        # Call WebKnossos conversion script
-        logging.info(
-            "Converting to .wk format...")
-        self.call_wk_conversion_script(
-            stacks_2_export, layer_name=stacks_2_export[0], voxel_size=voxel_size)
-        logging.info(
-            "Conversion done...")
+        for stack in stacks_2_export:
+            # get the stack info from the project_data
+            stack_info = next((s for s in project_data['project']['stacks'] if s["title"] == stack))
+
+            # Extract voxel size
+            voxel_size = stack_info['resolution'].strip("()").split(",")
+            voxel_size = tuple(map(float, voxel_size))
+            voxel_size = tuple(map(int, voxel_size))
+
+            # Call WebKnossos conversion script
+            logging.info(
+                "Converting %s to .wk format...", stack)
+            self.call_wk_conversion_script(
+                stack, layer_name=stack, voxel_size=voxel_size)
+            logging.info(
+                "Conversion done...")
 
     def call_wk_conversion_script(self, stacks_2_export, layer_name="color", voxel_size=(4, 4, 90)):
         """Wrapper for CATMAID to WK format conversion script
@@ -131,8 +136,9 @@ class WK_Exporter():
         """
         try:
             # Run the command
-            subprocess.run([f"{self.wk_client_script}", f"{self.catmaid_dir}/{stacks_2_export[0]}", f"{self.project}",
-                            f"{layer_name}", f"{voxel_size[0]},{voxel_size[1]},{voxel_size[2]}"]
+            subprocess.run([f"{self.wk_client_script}", f"{self.catmaid_dir}/{stacks_2_export}", f"{self.project}",
+                            f"{layer_name}", f"{voxel_size[0]},{voxel_size[1]},{voxel_size[2]}"],
+                           check=False  # Explicitly set to False so linter stops complaining
                            )
         except subprocess.CalledProcessError as e:
             print(f"Error: {e}")
