@@ -21,24 +21,25 @@ from ruamel.yaml import YAML
 from tifffile import TiffFile
 from bs4 import BeautifulSoup as Soup
 
+
 class CATMAID_Exporter():
     def __init__(
-        self, catmaid_dir, render, client_scripts, parallel=1, clobber=False 
+        self, catmaid_dir, render, client_scripts, parallel=1, clobber=False
     ):
         self.remote = False
-        self.fmt = 'png' # Set format, standard is 'png'
-        self.w_tile = 1024 # Set CATMAID tile width/height
-        self.h_tile = 1024 # Standard is 1024 pixels
+        self.fmt = 'png'  # Set format, standard is 'png'
+        self.w_tile = 1024  # Set CATMAID tile width/height
+        self.h_tile = 1024  # Standard is 1024 pixels
         self.catmaid_dir = catmaid_dir
         self.parallel = parallel
         self.clobber = clobber
-        self.render = render # render connect object
+        self.render = render  # render connect object
 
         self.host = render["host"]
         self.owner = render["owner"]
         self.project = render["project"]
         self.client_scripts = client_scripts
-        
+
     def to_server_path(self, path: pathlib.Path) -> str:
         """convert a local path to the location on the server
 
@@ -60,16 +61,16 @@ class CATMAID_Exporter():
 
     def export_stacks(self, args):
         """Export render-ws project stack(s) to CATMAID format
-    
+
         returns project info
         """
         stacks_2_export = args
         if type(stacks_2_export) is not list:
             stacks_2_export = [stacks_2_export]
-        export_data = self.set_export_parameters(stacks_2_export) # Set up CATMAID export parameters
+        export_data = self.set_export_parameters(stacks_2_export)  # Set up CATMAID export parameters
         z_values = np.unique([renderapi.stack.get_z_values_for_stack(stack,
-                                                                     **self.render)\
-                            for stack in stacks_2_export])
+                                                                     **self.render)
+                              for stack in stacks_2_export])
         logging.info(
             f"Running render_catmaid_boxes..."
         )
@@ -94,8 +95,8 @@ class CATMAID_Exporter():
         --------\
         """
         print(out)
-        
-    def set_export_parameters(self, stacks_2_export) -> list: 
+
+    def set_export_parameters(self, stacks_2_export) -> list:
         # Initialize collection for export parameters
         export_data = {}
         # Update max level
@@ -106,7 +107,7 @@ class CATMAID_Exporter():
             stack_bounds = renderapi.stack.get_stack_bounds(stack=stack,
                                                             **self.render)
             w_stack = max(stack_bounds['maxX'] - stack_bounds['minX'],
-                        stack_bounds['maxY'] - stack_bounds['minY'])
+                          stack_bounds['maxY'] - stack_bounds['minY'])
             max_level = int(np.ceil(np.log(w_stack / self.w_tile) * 1/np.log(2)))
             # Export each stack to highest level in the project
             maxest_level = max(max_level, maxest_level)
@@ -122,9 +123,9 @@ class CATMAID_Exporter():
                                                    **self.render)
             # Add CATMAID export parameters to collection
             export_data[stack] = export_params
-            return export_data
-     
-    def render_catmaid_boxes_across_N_cores(self, stacks_2_export, export_data, z_values): # override 
+        return export_data
+
+    def render_catmaid_boxes_across_N_cores(self, stacks_2_export, export_data, z_values):  # override
         # Path to `render_catmaid_boxes` shell script
         fp_client = pathlib.Path(self.client_scripts) / 'render_catmaid_boxes.sh'
         # Set number of cores for multiprocessing
@@ -140,28 +141,28 @@ class CATMAID_Exporter():
             # render_catmaid_boxes_partial = partial(self.render_catmaid_boxes,
             #                                        client_script=fp_client,
             #                                        java_args=java_args)
-            
+
             # Run `render_catmaid_boxes` across `N_cores`
             with Pool(N_cores) as pool:
                 pool.map(call_run_ws_client_partial, z_values)
                 # pool.map(render_catmaid_boxes_partial, z_values)
 
     def call_run_ws_client(self, z, className, java_args):
-            """Wrapper for `call_run_ws_client` script to enable multiprocessing"""
-            _args = [f'{z:.0f}'] + java_args # specify z-level
-            print(_args)
-            # Call "render-ws-client"
-            renderapi.client.client_calls.call_run_ws_client(className,
-                                                             add_args=_args,
-                                                             memGB='2G',
-                                                             client_script="/home/catmaid/render/render-ws-java-client/src/main/scripts/run_ws_client.sh",
-                                                             )
+        """Wrapper for `call_run_ws_client` script to enable multiprocessing"""
+        _args = [f'{z:.0f}'] + java_args  # specify z-level
+        print(_args)
+        # Call "render-ws-client"
+        renderapi.client.client_calls.call_run_ws_client(className,
+                                                         add_args=_args,
+                                                         memGB='2G',
+                                                         client_script="/home/catmaid/render/render-ws-java-client/src/main/scripts/run_ws_client.sh",
+                                                         )
 
     def render_catmaid_boxes(self, z, client_script, java_args):
-            """Wrapper for `render_catmaid_boxes` script to enable multiprocessing"""
-            p = subprocess.run([client_script.as_posix(), f'{z:.0f}'] + java_args)
-    
-    def resort_tiles(self, stacks_2_export, z_values): 
+        """Wrapper for `render_catmaid_boxes` script to enable multiprocessing"""
+        p = subprocess.run([client_script.as_posix(), f'{z:.0f}'] + java_args)
+
+    def resort_tiles(self, stacks_2_export, z_values):
         # Iterate through stacks to export
         for stack in tqdm(stacks_2_export):
             # Loop through all the exported tiles per stack
@@ -178,7 +179,7 @@ class CATMAID_Exporter():
                 fp.rename(tile_format_1)
             # Clean up (now presumably empty) directory tree
             rmtree((self.catmaid_dir / stack / f"{self.w_tile}x{self.h_tile}").as_posix())
-    
+
     def make_thumbnails(self, stacks_2_export, z_values):
         # Loop through stacks to export
         for stack in tqdm(stacks_2_export):
@@ -211,14 +212,14 @@ class CATMAID_Exporter():
             bounds = renderapi.stack.get_stack_bounds(stack=stack,
                                                       **self.render)
             dimensions = (int((bounds['maxX'] - bounds['minX']) * 1.1),
-                        int((bounds['maxY'] - bounds['minY']) * 1.1),
-                        int(bounds['maxZ'] - bounds['minZ'] + 1))
-            # Get resolution data 
+                          int((bounds['maxY'] - bounds['minY']) * 1.1),
+                          int(bounds['maxZ'] - bounds['minZ'] + 1))
+            # Get resolution data
             stack_metadata = renderapi.stack.get_full_stack_metadata(stack=stack,
                                                                      **self.render)
             resolution = (np.round(stack_metadata['currentVersion']['stackResolutionX'], 5),
-                        np.round(stack_metadata['currentVersion']['stackResolutionY'], 5),
-                        np.round(stack_metadata['currentVersion']['stackResolutionZ'], 5))
+                          np.round(stack_metadata['currentVersion']['stackResolutionY'], 5),
+                          np.round(stack_metadata['currentVersion']['stackResolutionZ'], 5))
             # Get metadata
             ts = sample(renderapi.tilespec.get_tile_specs_from_stack(stack=stack,
                                                                      **self.render), 1)[0]
@@ -226,7 +227,7 @@ class CATMAID_Exporter():
             tif = TiffFile(fp)
             metadata = tif.pages[0].description
             export_data_list = list(export_data[stack].to_java_args())
-            maxest_level = export_data_list.index("--maxLevel") + 1 # Specific list element
+            maxest_level = export_data_list.index("--maxLevel") + 1  # Specific list element
 
             # Project data for output to project yaml file
             stack_datum = {
@@ -259,10 +260,13 @@ class CATMAID_Exporter():
         yaml.dump(project_data, project_yaml)
         yaml.dump(project_data, sys.stdout)
         return project_yaml, project_data
+
+
 class CatmaidBoxesParameters(ArgumentParameters):
     """Subclass of `ArgumentParameters` for facilitating CATMAID export client script"""
+
     def __init__(self, stack, root_directory,
-                 width=1024, height=1024, fmt='png', max_level=0, 
+                 width=1024, height=1024, fmt='png', max_level=0,
                  localhost=None, port=None, **kwargs):
 
         super(CatmaidBoxesParameters, self).__init__(**kwargs)
@@ -277,5 +281,3 @@ class CatmaidBoxesParameters(ArgumentParameters):
                                                            port=port)
         self.owner = kwargs["owner"]
         self.project = kwargs["project"]
-
-
