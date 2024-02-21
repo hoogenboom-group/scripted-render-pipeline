@@ -15,7 +15,7 @@ from .utils import ExportTarget
 HOST = "https://sonic.tnw.tudelft.nl"
 OWNER = "skaracoban"
 PROJECT = "20240219_PD05_final_test"
-STACKS_2_EXPORT = ["exc_405nm_correlated_new"]  # list
+STACKS_2_EXPORT = ["EM_himag_stitched"]  # list
 # STACKS_2_EXPORT = ["exc_405nm_correlated", "EM_himag_world"]  # list
 # STACKS_2_EXPORT = ["EM_himag_stitched"]  # list
 CLIENT_SCRIPTS = "/home/catmaid/render/render-ws-java-client/src/main/scripts"
