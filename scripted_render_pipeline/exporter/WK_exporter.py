@@ -1,5 +1,7 @@
 import logging
 import pathlib
+from turtle import st
+from typing import cast
 
 import numpy as np
 import renderapi
@@ -16,17 +18,18 @@ from .CATMAID_exporter import CATMAID_Exporter
 
 class WK_Exporter():
     def __init__(
-        self, wk_dir, catmaid_dir, render, client_scripts,
-        wk_client_script, parallel=1, clobber=False, remove_CATMAID_dir=False,
+        self, wk_dir, catmaid_dir: pathlib.Path, render, client_scripts: str | pathlib.Path,
+        wk_client_script: str | pathlib.Path, parallel=1,
+        clobber: bool = False, remove_CATMAID_dir: bool = False,
     ):
         self.remote = False
         self.fmt = 'png'  # Set format, standard is 'png'
         self.w_tile = 1024  # Set tile width/height
         self.h_tile = 1024  # Standard is 1024 pixels
-        self.wk_dir = wk_dir
+        self.wk_dir = wk_dir  # UNUSED
         self.catmaid_dir = catmaid_dir
         self.wk_client_script = wk_client_script
-        self.parallel = parallel
+        self.parallel = parallel  # UNUSED
         self.clobber = clobber
         self.remove_catmaid_dir = remove_CATMAID_dir
         self.render = render  # render connect object
@@ -56,20 +59,24 @@ class WK_Exporter():
             path.parts[total_parts:]
         )
 
-    def export_stacks(self, args):
+    def export_stacks(self, args: list[str] | str) -> None:
         """Export render-ws project stack(s) to WebKnossos data format
 
         returns project info
         """
         stacks_2_export = args
-        if type(stacks_2_export) is not list:
+        if type(stacks_2_export) is str:
             stacks_2_export = [stacks_2_export]
         try:
             no_stacks = len(stacks_2_export)
             if no_stacks > 1:
                 raise MoreThanOneStack
         except MoreThanOneStack:
+            # TODO: remove this error once I have confirmed that the code works for multiple stacks
             print('Exporting more than one stack to WebKnossos is not supported')
+
+        # Tell type checker we are sure that stacks_2_export is a list of strings now
+        stacks_2_export = cast(list[str], stacks_2_export)
 
         # Check if catmaid_dir exists, if yes go directly to WK conversion
         if not os.path.isdir(self.catmaid_dir / stacks_2_export[0]):
@@ -129,14 +136,15 @@ class WK_Exporter():
             logging.info(
                 "Conversion done...")
 
-    def call_wk_conversion_script(self, stacks_2_export, layer_name="color", voxel_size=(4, 4, 90)):
+    def call_wk_conversion_script(self, stack_2_export: str, layer_name: str = "color",
+                                  voxel_size: tuple[int, int, int] = (4, 4, 90)) -> None:
         """Wrapper for CATMAID to WK format conversion script
 
         returns nothing
         """
         try:
             # Run the command
-            subprocess.run([f"{self.wk_client_script}", f"{self.catmaid_dir}/{stacks_2_export}", f"{self.project}",
+            subprocess.run([f"{self.wk_client_script}", f"{self.catmaid_dir}/{stack_2_export}", f"{self.project}",
                             f"{layer_name}", f"{voxel_size[0]},{voxel_size[1]},{voxel_size[2]}"],
                            check=False  # Explicitly set to False so linter stops complaining
                            )
