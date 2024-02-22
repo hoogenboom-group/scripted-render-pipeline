@@ -16,10 +16,10 @@ from shutil import rmtree
 from skimage import io, transform, img_as_ubyte
 
 import sys
-from random import sample
+from random import sample  # imported multiple times?
 from ruamel.yaml import YAML
 from tifffile import TiffFile
-from bs4 import BeautifulSoup as Soup
+from bs4 import BeautifulSoup as Soup  # not used?
 
 
 class CATMAID_Exporter():
@@ -40,6 +40,7 @@ class CATMAID_Exporter():
         self.project = render["project"]
         self.client_scripts = client_scripts
 
+    # TODO: This seems to never be used, and it uses non-existent class attributes, should be removed?
     def to_server_path(self, path: pathlib.Path) -> str:
         """convert a local path to the location on the server
 
@@ -72,22 +73,22 @@ class CATMAID_Exporter():
                                                                      **self.render)
                               for stack in stacks_2_export])
         logging.info(
-            f"Running render_catmaid_boxes..."
+            "Running render_catmaid_boxes..."
         )
         print("run boxClient")
         self.render_catmaid_boxes_across_N_cores(stacks_2_export, export_data, z_values)
         print("completed")
         logging.info(
-            f"Done"
-            f"Resorting tiles..."
+            "Done"
+            "Resorting tiles..."
         )
         self.resort_tiles(stacks_2_export, z_values)
         logging.info(
-            f"Making thumbnails..."
+            "Making thumbnails..."
         )
         self.make_thumbnails(stacks_2_export, z_values)
         logging.info(
-            f"Making project file..."
+            "Making project file..."
         )
         project_yaml, project_data = self.create_project_file(stacks_2_export, export_data)
         out = f"""\
@@ -96,7 +97,7 @@ class CATMAID_Exporter():
         """
         print(out)
 
-    def set_export_parameters(self, stacks_2_export) -> list:
+    def set_export_parameters(self, stacks_2_export) -> dict:
         # Initialize collection for export parameters
         export_data = {}
         # Update max level
@@ -160,7 +161,8 @@ class CATMAID_Exporter():
 
     def render_catmaid_boxes(self, z, client_script, java_args):
         """Wrapper for `render_catmaid_boxes` script to enable multiprocessing"""
-        p = subprocess.run([client_script.as_posix(), f'{z:.0f}'] + java_args)
+        _ = subprocess.run([client_script.as_posix(), f'{z:.0f}'] + java_args,
+                           check=False)  # Explicitly set to False so linter stops complaining
 
     def resort_tiles(self, stacks_2_export, z_values):
         # Iterate through stacks to export
@@ -224,6 +226,8 @@ class CATMAID_Exporter():
             ts = sample(renderapi.tilespec.get_tile_specs_from_stack(stack=stack,
                                                                      **self.render), 1)[0]
             fp = ts.ip[0]['imageUrl']
+            # Remove server prefix if present
+            fp = fp.split(".nl")[-1]
             tif = TiffFile(fp)
             metadata = tif.pages[0].description
             export_data_list = list(export_data[stack].to_java_args())
