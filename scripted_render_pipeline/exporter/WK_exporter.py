@@ -1,6 +1,5 @@
 import logging
 import pathlib
-from turtle import st
 from typing import cast
 
 import numpy as np
@@ -67,13 +66,6 @@ class WK_Exporter():
         stacks_2_export = args
         if type(stacks_2_export) is str:
             stacks_2_export = [stacks_2_export]
-        try:
-            no_stacks = len(stacks_2_export)
-            if no_stacks > 1:
-                raise MoreThanOneStack
-        except MoreThanOneStack:
-            # TODO: remove this error once I have confirmed that the code works for multiple stacks
-            print('Exporting more than one stack to WebKnossos is not supported')
 
         # Tell type checker we are sure that stacks_2_export is a list of strings now
         stacks_2_export = cast(list[str], stacks_2_export)
@@ -83,17 +75,14 @@ class WK_Exporter():
             # Create CATMAID_exporter class instance
             CATMAID_exporter = CATMAID_Exporter(self.catmaid_dir, self.render, self.client_scripts,
                                                 self.parallel, self.clobber)
-            export_data = CATMAID_exporter.set_export_parameters(
-                stacks_2_export)  # Set up CATMAID export parameters
-            z_values = np.unique([renderapi.stack.get_z_values_for_stack(stack,
-                                                                         **self.render)
+            export_data = CATMAID_exporter.set_export_parameters(stacks_2_export)  # Set up CATMAID export parameters
+            z_values = np.unique([renderapi.stack.get_z_values_for_stack(stack, **self.render)
                                   for stack in stacks_2_export])
             # Render tiles with BoxClient
             logging.info(
                 "Running BoxClient..."
             )
-            CATMAID_exporter.render_catmaid_boxes_across_N_cores(
-                stacks_2_export, export_data, z_values)
+            CATMAID_exporter.render_catmaid_boxes_across_N_cores(stacks_2_export, export_data, z_values)
             print("completed")
             # Resort tiles into preferred format
             logging.info(
@@ -105,8 +94,7 @@ class WK_Exporter():
             logging.info(
                 "Making project file..."
             )
-            _, project_data = CATMAID_exporter.create_project_file(
-                stacks_2_export, export_data)
+            _, project_data = CATMAID_exporter.create_project_file(stacks_2_export, export_data)
         else:
             yaml = YAML()
             project_data = yaml.load(self.catmaid_dir / 'project.yaml')
@@ -116,7 +104,7 @@ class WK_Exporter():
             for stack in stacks_2_export:
                 if not any(stack == s["title"] for s in project_data['project']['stacks']):
                     # TODO: run CATMAID_exporter.export_stacks(stacks_2_export) instead?
-                    # this might be a bit of a hack, but it should work as it will just skip the exports that already exist I think
+                    # this might be a bit of a hack, but it should work as it will just skip the exports that already exist (I think)
                     raise ValueError(f"stack {stack} not found in project file")
 
         for stack in stacks_2_export:
@@ -131,8 +119,7 @@ class WK_Exporter():
             # Call WebKnossos conversion script
             logging.info(
                 "Converting %s to .wk format...", stack)
-            self.call_wk_conversion_script(
-                stack, layer_name=stack, voxel_size=voxel_size)
+            self.call_wk_conversion_script(stack, layer_name=stack, voxel_size=voxel_size)
             logging.info(
                 "Conversion done...")
 
@@ -159,8 +146,3 @@ class WK_Exporter():
                 print('Error deleting CATMAID directory')
 
 # define Python user-defined exceptions
-
-
-class MoreThanOneStack(Exception):
-    "Raised when the input value is less than 18"
-    pass
