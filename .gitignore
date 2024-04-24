@@ -1,4 +1,6 @@
 .pyvirt
+.venv/
+.vscode/
 .auth.json
 __pycache__
 *.egg-info/
