@@ -4,6 +4,7 @@ relies on provided parameters being set in the script for now
 """
 import logging
 import pathlib
+from natsort import natsorted
 
 from ..basic_auth import load_auth
 from .clem_mipmapper import CLEM_Mipmapper
@@ -12,28 +13,32 @@ from .uploader import Uploader
 
 # render properties
 HOST = "https://sonic.tnw.tudelft.nl"
-OWNER = "rlane"
-# PROJECT = "20191101_ratpancreas_partial_partial_test"
-PROJECT = "20230523_singleholder_Earthworm_03_partial_partial_test"
+OWNER = "akievits"
+PROJECT = "20231107_MCF7_UAC_test"
+CORRECTIONS_DIR = "postcorrection"
 
 # script properties
 PARALLEL = 40  # read this many images in parallel to optimise io usage
 CLOBBER = True  # set to false to fail if data would be overwritten
 Z_RESOLUTION = 100  # the thickness of sections
-REMOTE = True  # set to false if ran locally
+REMOTE = False  # set to false if ran locally
 NAS_SHARE_PATH = pathlib.Path.home() / "shares/long_term_storage"
 SERVER_STORAGE_PATH_STR = "/long_term_storage/"
 PROJECT_PATH = (
     (NAS_SHARE_PATH if REMOTE else pathlib.Path(SERVER_STORAGE_PATH_STR))
     # / "thopp/20191101_rat-pancreas_partial"
     #  / "rlane/SECOM/projects/20191101_rat-pancreas_partial"
-    / "thopp/20230523_singleholder_Earthworm_03/ROA-1"
+    / "akievits/FAST-EM/tests/{PROJECT}"
 )
 MIPMAP_TYPE = "FASTEM"  # "CLEM"
 # for fastem datasets only
 USE_POSITIONS = True  # use the automated stitching results
+MULTIPLE_SECTIONS = True # Set to False for a single section
 
+if MULTIPLE_SECTIONS:
+    PROJECT_PATHS = natsorted([p / CORRECTIONS_DIR for p in PROJECT_PATH.iterdir() if (p.is_dir() and not p.name.startswith('_'))])
 
+   
 def _main():
     auth = load_auth()
     match MIPMAP_TYPE:
@@ -41,7 +46,7 @@ def _main():
             mipmapper = CLEM_Mipmapper(PROJECT_PATH, PARALLEL, CLOBBER)
         case "FASTEM":
             mipmapper = FASTEM_Mipmapper(
-                PROJECT_PATH, PARALLEL, CLOBBER, use_positions=USE_POSITIONS
+                PROJECT_PATH, PARALLEL, CLOBBER, use_positions=USE_POSITIONS, project_paths=PROJECT_PATHS
             )
         case _:
             raise RuntimeError(f"wrong mipmap type! '{MIPMAP_TYPE}'")
