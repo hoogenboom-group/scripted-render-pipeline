@@ -28,7 +28,7 @@ PROJECT_PATH = (
     (NAS_SHARE_PATH if REMOTE else pathlib.Path(SERVER_STORAGE_PATH_STR))
     # / "thopp/20191101_rat-pancreas_partial"
     #  / "rlane/SECOM/projects/20191101_rat-pancreas_partial"
-    / "akievits/FAST-EM/tests/{PROJECT}"
+    / f"akievits/FAST-EM/tests/{PROJECT}"
 )
 MIPMAP_TYPE = "FASTEM"  # "CLEM"
 # for fastem datasets only
