@@ -21,7 +21,7 @@ MULTIPLE_SECTIONS = True  # Set to False for a single section
 
 # Processing parameters
 PCT = 0.1
-A = 1
+A = 3
 
 if MULTIPLE_SECTIONS:
     PROJECT_PATHS = natsorted([p for p in PROJECT_PATH.iterdir() if (p.is_dir() and not p.name.startswith('_'))])
