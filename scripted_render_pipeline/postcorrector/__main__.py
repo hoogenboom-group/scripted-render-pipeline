@@ -8,7 +8,7 @@ from natsort import natsorted
 from .post_corrector import Post_Corrector
 
 # script properties
-PROJECT = "20231212_MC7_NdAc"
+PROJECT = "20231107_MCF7_UAC_test"
 PARALLEL = 40  # read this many images in parallel to optimise io usage
 CLOBBER = True  # set to false to fail if data would be overwritten
 REMOTE = False  # set to false if ran locally
@@ -16,7 +16,7 @@ NAS_SHARE_PATH = pathlib.Path.home() / "shares/long_term_storage"
 SERVER_STORAGE_PATH_STR = "/long_term_storage/"
 PROJECT_PATH = (
     NAS_SHARE_PATH if REMOTE else pathlib.Path(SERVER_STORAGE_PATH_STR)
-) / f"akievits/FAST-EM/{PROJECT}"
+) / f"akievits/FAST-EM/tests/{PROJECT}"
 MULTIPLE_SECTIONS = True  # Set to False for a single section
 
 # Processing parameters
