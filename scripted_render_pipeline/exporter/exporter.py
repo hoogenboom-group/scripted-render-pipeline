@@ -183,8 +183,10 @@ class Array_Downloader(Downloader):
 
     def save(self, stack, index_x, index_y, index_z, data):  # overwrite
         coords = [index * self.newsize for index in (index_x, index_y)]
-        slices = [slice(coord, coord + self.newsize) for coord in coords]
-        self.imgs[stack][index_z][reversed(slices)] = data
+        slice_x, slice_y = [
+            slice(coord, coord + self.newsize) for coord in coords
+        ]
+        self.imgs[stack][index_z][slice_y, slice_x] = data
 
 
 def _draw_debug_marks(img, size, extras=None):
