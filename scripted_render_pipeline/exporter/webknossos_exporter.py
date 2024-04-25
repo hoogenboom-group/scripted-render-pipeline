@@ -85,7 +85,7 @@ class Webknossos_Exporter(exporter.Downloader):
                 self.max_mag,
                 "bicubic",
                 True,
-                "anisotropic",
+                "constant_z",
                 executor=executor,
             )
 
