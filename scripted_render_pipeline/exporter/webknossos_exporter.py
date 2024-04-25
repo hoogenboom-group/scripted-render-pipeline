@@ -46,7 +46,7 @@ class Webknossos_Exporter(exporter.Downloader):
         self._super = super()
         self._super.__init__(*args, **kwargs)
         self.location = pathlib.Path(location)
-        self.voxel_size = [voxel * self.downscaling for voxel in voxel_size]
+        self.voxel_size = [voxel * self.scaledown for voxel in voxel_size]
         self.max_mag = webknossos.geometry.Mag(2**downsample)
         self.processes = processes
         self.location.mkdir(parents=True, exist_ok=True)
