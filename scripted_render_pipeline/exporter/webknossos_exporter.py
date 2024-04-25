@@ -29,6 +29,7 @@ class Webknossos_Exporter(exporter.Downloader):
         defaults to DEFAULT_VOXEL_SIZE
     downsample: how many times to downsample the data
         defaults to 7 (max scale of 128 voxels)
+        set to 0 for no downsampling
     processes: how many parallel processes to use for downscaling
         defaults to 8
     """
@@ -73,8 +74,6 @@ class Webknossos_Exporter(exporter.Downloader):
 
         mag = self.mags[stack]
         mag.compress()
-        if self.skip_downsample:
-            return
 
         with cluster_tools.MultiprocessingExecutor(
             max_workers=self.processes
