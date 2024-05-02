@@ -46,7 +46,13 @@ class Webknossos_Exporter(exporter.Downloader):
         self._super = super()
         self._super.__init__(*args, **kwargs)
         self.location = pathlib.Path(location)
-        self.voxel_size = [voxel * self.scaledown for voxel in voxel_size]
+        # adjust voxel size to downscaling value
+        voxel_size_x, voxel_size_y, voxel_size_z = voxel_size
+        self.voxel_size = [
+            voxel_size_x * self.newsize,
+            voxel_size_y * self.newsize,
+            voxel_size_z,
+        ]
         self.max_mag = webknossos.geometry.Mag(2**downsample)
         self.processes = processes
         self.location.mkdir(parents=True, exist_ok=True)
@@ -56,13 +62,13 @@ class Webknossos_Exporter(exporter.Downloader):
         )
         self.mags = {}
 
-    def _setup_z(self, stack, z_values, *size):  # overwrite
+    def _setup_z(self, stack, z_values, y_size, x_size):  # overwrite
         first_z = z_values[0]
         z_size = z_values[-1] - first_z + 1
         layer = self.dataset.add_layer(stack, "color")
         layer.bounding_box = webknossos.geometry.BoundingBox(
-            [0] * 2 + [first_z],
-            [item * self.newsize for item in size] + [z_size],
+            [0, 0, first_z],
+            [x_size * self.newsize, y_size * self.newsize, z_size],
         )
         mag = layer.add_mag(1)
         self.mags[stack] = mag
