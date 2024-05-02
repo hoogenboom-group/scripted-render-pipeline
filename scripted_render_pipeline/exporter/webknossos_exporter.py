@@ -104,8 +104,8 @@ def _main():
         format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
     )
     host = "https://sonic.tnw.tudelft.nl"
-    owner = "rlane"
-    project = "20230523_singleholder_Earthworm_03_partial_partial_test"
+    owner = "akievits"
+    project = "20231107_MCF7_UAC_test"
     path = "./wk_dataset"
     test_scale = 8
     concurrency = 8
@@ -117,7 +117,8 @@ def _main():
         downscaling=test_scale,
         concurrency=concurrency,
     )
-    wk_exporter.download_project()
+    stacks = ["postcorrection", "postcorrection_rigid_scaled"]
+    wk_exporter.download_project(stacks)
     logging.info(f"downloaded project, saved webknossos dataset to {path}")
 
 
