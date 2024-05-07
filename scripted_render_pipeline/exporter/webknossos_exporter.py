@@ -49,8 +49,8 @@ class Webknossos_Exporter(exporter.Downloader):
         # adjust voxel size to downscaling value
         voxel_size_x, voxel_size_y, voxel_size_z = voxel_size
         self.voxel_size = [
-            voxel_size_x * self.newsize,
-            voxel_size_y * self.newsize,
+            voxel_size_x * self.scaledown,
+            voxel_size_y * self.scaledown,
             voxel_size_z,
         ]
         self.max_mag = webknossos.geometry.Mag(2**downsample)
