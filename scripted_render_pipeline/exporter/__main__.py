@@ -14,7 +14,7 @@ from ..basic_auth import load_auth
 HOST = "https://sonic.tnw.tudelft.nl"
 OWNER = "akievits"
 PROJECT = "20231107_MCF7_UAC_test"
-STACKS_2_EXPORT = ["postcorrection", "postcorrection_rigid_scaled"] # list
+STACKS_2_EXPORT = ["postcorrection_rigid_scaled"] # list
 DOWNSCALING = 1 # Default
 DOWNSAMPLE = 7 # How many times to downsample data
 CONCURRENCY = 8 # Default number of processes
@@ -36,7 +36,7 @@ def _main():
     voxel_size = stack_metadata[0].stackResolutionX, stack_metadata[0].stackResolutionY, stack_metadata[0].stackResolutionZ
     
     wk_exporter = Webknossos_Exporter(
-        path=PATH,
+        location=PATH,
         host=HOST,
         owner=OWNER,
         project=PROJECT,
