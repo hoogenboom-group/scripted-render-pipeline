@@ -35,8 +35,7 @@ MIPMAP_TYPE = "FASTEM"  # "CLEM"
 USE_POSITIONS = True  # use the automated stitching results
 MULTIPLE_SECTIONS = True # Set to False for a single section
 
-if MULTIPLE_SECTIONS:
-    PROJECT_PATHS = natsorted([p / CORRECTIONS_DIR for p in PROJECT_PATH.iterdir() if (p.is_dir() and not p.name.startswith('_'))])
+PROJECT_PATHS = natsorted([p / CORRECTIONS_DIR for p in PROJECT_PATH.iterdir() if (p.is_dir() and not p.name.startswith('_'))]) if MULTIPLE_SECTIONS else None
 
    
 def _main():
