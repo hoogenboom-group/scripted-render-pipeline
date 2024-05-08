@@ -2,65 +2,59 @@
 
 relies on provided parameters being set in the script for now
 """
+
 import logging
-import pathlib
+import renderapi
+import requests
 
+from pathlib import Path
+from .webknossos_exporter import Webknossos_Exporter
 from ..basic_auth import load_auth
-from .connecter import Connecter
-from .CATMAID_exporter import CATMAID_Exporter
-from .WK_exporter import WK_Exporter
-from .utils import ExportTarget
 
-# render properties
+# Export parameters
 HOST = "https://sonic.tnw.tudelft.nl"
-OWNER = "skaracoban"
-PROJECT = "20240219_PD05_final_test"
-STACKS_2_EXPORT = ["EM_himag_stitched", "exc_405nm_correlated",
-                   "EM_himag_stitched_new", "exc_405nm_correlated_new"]  # list
-CLIENT_SCRIPTS = "/home/catmaid/render/render-ws-java-client/src/main/scripts"
-WK_CLIENT_SCRIPT = "/opt/webknossos/tools/cube.sh"
-
-# script properties
-PARALLEL = 40  # read this many images in parallel to optimise io usage
-CLOBBER = True  # set to false to fail if data would be overwritten
-# Z_RESOLUTION = 100  # DEPRICATED: thickness of sections should be in render-ws already
-REMOTE = False  # set to false if ran locally
-# set to True if CATMAID directory should be removed (only when exporting to WebKnossos)
-REMOVE_CATMAID_DIR = False
-NAS_SHARE_PATH = pathlib.Path.home() / "shares/long_term_storage"
-SERVER_STORAGE_PATH_STR = "/long_term_storage/"
-# EXPORT_TYPE = "WEBKNOSSOS"  # "WEBKNOSSOS" or "CATMAID"
-EXPORT_TYPE = ExportTarget.WEBKNOSSOS  # No more misspelling WebKnossos (string like before also still works)
-
-# export directories
-CATMAID_DIR = (
-    (NAS_SHARE_PATH if REMOTE else pathlib.Path(SERVER_STORAGE_PATH_STR))
-    / f"catmaid_projects/{OWNER}/{PROJECT}"
-)
-WK_DIR = (
-    (NAS_SHARE_PATH if REMOTE else pathlib.Path(SERVER_STORAGE_PATH_STR))
-    / f"webknossos/binaryData/hoogenboom-group/{PROJECT}"
+OWNER = "akievits"
+PROJECT = "20231107_MCF7_UAC_test"
+STACKS_2_EXPORT = ["postcorrection_rigid_scaled"]  # list
+DOWNSCALING = 1  # Default
+DOWNSAMPLE = 7  # How many times to downsample data
+CONCURRENCY = 8  # Default number of processes
+PATH = Path(
+    "/long_term_storage/webknossos/binaryData/hoogenboom-group/20231107_MCF7_UAC_test_test"
 )
 
 
 def _main():
-    auth = load_auth()
-    # Connect to     render-ws
-    connecter = Connecter(HOST, OWNER, PROJECT, auth)
-    RENDER = connecter.get_render_info()
+    # Render authentication
+    USER, PASSWORD = load_auth()
+    session = requests.Session()
+    session.auth = (USER, PASSWORD)
+    render = dict(host=HOST, owner=OWNER, project=PROJECT, session=session)
 
-    match EXPORT_TYPE:
-        case ExportTarget.WEBKNOSSOS:
-            exporter = WK_Exporter(WK_DIR, CATMAID_DIR, RENDER, 
-                                   CLIENT_SCRIPTS, WK_CLIENT_SCRIPT, 
-                                   PARALLEL, CLOBBER, REMOVE_CATMAID_DIR)
-        case ExportTarget.CATMAID:
-            exporter = CATMAID_Exporter(
-                CATMAID_DIR, RENDER, CLIENT_SCRIPTS, PARALLEL, CLOBBER)
-        case _:
-            raise RuntimeError(f"Export format not supported! '{EXPORT_TYPE}'")
+    # Get voxel size
+    # Assumes equal voxel sizes
+    # TODO: expand for stacks with different voxel sizes
+    stack_metadata = [
+        renderapi.stack.get_stack_metadata(stack, **render)
+        for stack in STACKS_2_EXPORT
+    ]
+    voxel_size = (
+        stack_metadata[0].stackResolutionX,
+        stack_metadata[0].stackResolutionY,
+        stack_metadata[0].stackResolutionZ,
+    )
 
-    exporter.export_stacks(STACKS_2_EXPORT)
+    wk_exporter = Webknossos_Exporter(
+        location=PATH,
+        host=HOST,
+        owner=OWNER,
+        project=PROJECT,
+        downscaling=DOWNSCALING,
+        voxel_size=voxel_size,
+        downsample=DOWNSAMPLE,
+        concurrency=CONCURRENCY,
+    )
+    wk_exporter.download_project(stacks=STACKS_2_EXPORT)
 
 
 if __name__ == "__main__":

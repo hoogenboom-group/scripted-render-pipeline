@@ -46,25 +46,36 @@ def _main():
         description="loads and saves http basic auth credentials",
     )
     parser.add_argument("action", choices=["show", "save"], nargs="?")
+    parser.add_argument("-s", "--silent", action="store_true")
     args = parser.parse_args()
 
     if args.action == "save":
         import getpass
 
-        username = input("username:\n")
-        password = getpass.getpass("password:\n")
+        if args.silent:
+            username, password = input().split(":")
+        else:
+            username = input("username:\n")
+            password = getpass.getpass("password:\n")
+
         save_auth(username, password)
     else:
         items = "username", "password"
         try:
             auth = load_auth()
         except AuthFileMissing:
-            print("failed to get stored auth file, create it with save")
+            print(
+                "failed to get stored auth file, create it with save",
+                file=sys.stderr,
+            )
             sys.exit(1)
 
-        for item, value in zip(items, auth):
-            print(f"{item}:")
-            print(f"{value}")
+        if args.silent:
+            print(":".join(auth))
+        else:
+            for item, value in zip(items, auth):
+                print(f"{item}:")
+                print(f"{value}")
 
 
 if __name__ == "__main__":

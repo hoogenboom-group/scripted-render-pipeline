@@ -34,8 +34,7 @@ dependencies = [
   "scikit-image",
   "tifffile",
   "tqdm",
-  "ruamel.yaml",
-  "bs4",
+  "webknossos",
 ]
 
 [project.optional-dependencies]
