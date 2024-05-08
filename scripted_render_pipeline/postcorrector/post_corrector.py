@@ -65,8 +65,8 @@ class Post_Corrector:
             all_paths += fp_sample   
         # Compute MED and MAD from global sample
         logging.info("Estimating global med and mad values")
-        med = self.get_med(all_paths, pct=self.pct)
-        mad = self.get_mad(all_paths, med=med, pct=self.pct)
+        med1, med2 = self.get_med(all_paths, pct=self.pct)
+        mad1, mad2 = self.get_mad(all_paths, med1=med1, med2=med2, pct=self.pct)
         # Compute correction per section
         futures = set()
         failed_sections = []
@@ -76,7 +76,9 @@ class Post_Corrector:
 
         try:
             for filepaths in self.find_files():
-                future = executor.submit(self.post_correct_section, filepaths, med, mad)
+                future = executor.submit(
+                    self.post_correct_section, filepaths, med1, med2, mad1, mad2
+                    )
                 futures.add(future)
 
             for future in tqdm(
@@ -130,7 +132,7 @@ class Post_Corrector:
             executor.shutdown()
         
 
-    def post_correct_section(self, filepaths: list, med, mad):
+    def post_correct_section(self, filepaths: list, med1, med2, mad1, mad2):
         """create post_corrected images for one section
 
         filepaths: list of filepaths of raw images in sections
@@ -145,7 +147,7 @@ class Post_Corrector:
                     raise RuntimeError(f"found empty tifffile: {file_path}")
                 image = tiff.pages[0].asarray()
                 corrupted = self.has_artefact(
-                    image, med=med, mad=mad, pct=self.pct, a=self.a
+                    image, med1=med1, med2=med2, mad1=mad1, mad2=mad2, pct=self.pct, a=self.a
                 )
                 if not corrupted:
                     fps_clean.append(file_path)
@@ -160,7 +162,8 @@ class Post_Corrector:
     def get_med(self, filepaths, pct=1):
         """Get median value of given percentile of select images"""
         # Collect percentile values
-        ps = []
+        ps1 = []
+        ps2 = []
         # Loop through tiffs
         for file_path in filepaths:
             with tifffile.TiffFile(file_path) as tiff:
@@ -168,14 +171,17 @@ class Post_Corrector:
                     raise RuntimeError(f"found empty tifffile: {file_path}")
                 # Read tiff and extract lowest resolution page from pyramid
                 image = tiff.pages[-1].asarray()
-                # Compute percentile
+                # Compute percentiles
                 p1 = np.percentile(image, pct)
-                ps.append(p1)
+                p2 = np.percentile(image, 100-pct)
+                ps1.append(p1)
+                ps2.append(p2)
         # Compute median
-        med = np.median(ps)
-        return med
+        med1 = np.median(ps1)
+        med2 = np.median(ps2)
+        return med1, med2
 
-    def get_mad(self, filepaths, med, pct=1):
+    def get_mad(self, filepaths, med1, med2, pct=1):
         """Get median absolute deviation from given percentile of select images
 
         References
@@ -183,7 +189,7 @@ class Post_Corrector:
         [1] https://en.wikipedia.org/wiki/Median_absolute_deviation
         """
         # Collect absolute deviations
-        ads = []
+        ads1, ads2 = [], []
         # Loop through tiffs
         for file_path in filepaths:
             # Read tiff and extract lowest resolution page from pyramid
@@ -191,13 +197,17 @@ class Post_Corrector:
             image = tiff.pages[-1].asarray()
             # Compute absolute deviation
             p1 = np.percentile(image, pct)
-            ad = np.abs(p1 - med)
-            ads.append(ad)
+            p2 = np.percentile(image, 100-pct)
+            ad1 = np.abs(p1 - med1)
+            ad2 = np.abs(p2 - med2)
+            ads1.append(ad1)
+            ads2.append(ad2)
         # Compute median absolute deviation
-        mad = np.median(ads)
-        return mad
+        mad1 = np.median(ads1)
+        mad2 = np.median(ads2)
+        return mad1, mad2
 
-    def has_artefact(self, image, med: float, mad: float, pct=1, a=3):
+    def has_artefact(self, image, med1: float, med2: float, mad1: float, mad2: float, pct=1, a=3):
         """Determine if image contains an artefact based on intensity percentiles
 
         image: Input image
@@ -213,7 +223,8 @@ class Post_Corrector:
             Whether image has been corrupted by an artefact
         """
         p1 = np.percentile(image, pct)
-        corrupted = (p1 < med - a * mad) | (p1 > med + a * mad)
+        p2 = np.percentile(image, 100-pct)
+        corrupted = (p1 < med1 - a * mad1) | (p1 > med1 + a * mad1) | (p2 < med2 - a * mad2) | (p2 > med2 + a * mad2) # Two sided test
         return corrupted
 
     def post_correct(self, filepaths: list, fps_clean: list):
