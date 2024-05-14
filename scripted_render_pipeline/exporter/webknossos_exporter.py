@@ -7,6 +7,7 @@ import webknossos
 from . import exporter
 
 DEFAULT_VOXEL_SIZE = 4, 4, 100
+DEFAULT_SAMPLING_MODE = webknossos.dataset.SamplingModes.CONSTANT_Z
 
 
 class Webknossos_Exporter(exporter.Downloader):
@@ -32,6 +33,8 @@ class Webknossos_Exporter(exporter.Downloader):
         set to 0 for no downsampling
     processes: how many parallel processes to use for downscaling
         defaults to 8
+    sampling_mode: which sampling mode to use
+        defaults to webknossos.dataset.SamplingModes.CONSTANT_Z
     """
 
     def __init__(
@@ -41,11 +44,13 @@ class Webknossos_Exporter(exporter.Downloader):
         voxel_size=DEFAULT_VOXEL_SIZE,
         downsample=7,
         processes=8,
+        sampling_mode=DEFAULT_SAMPLING_MODE,
         **kwargs,
     ):
         self._super = super()
         self._super.__init__(*args, **kwargs)
         self.location = pathlib.Path(location)
+        self.sampling_mode = sampling_mode
         # adjust voxel size to downscaling value
         voxel_size_x, voxel_size_y, voxel_size_z = voxel_size
         self.voxel_size = [
@@ -88,7 +93,7 @@ class Webknossos_Exporter(exporter.Downloader):
                 self.max_mag,
                 "bicubic",
                 True,
-                "anisotropic",
+                self.sampling_mode,
                 executor=executor,
             )
 
