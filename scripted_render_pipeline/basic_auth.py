@@ -33,6 +33,12 @@ def load_auth():
 def save_auth(username, password):
     """save http basic auth info to file"""
     auth = username, password
+    try:
+        FILEPATH.touch()
+        FILEPATH.chmod(0o600)  # make file private to owner
+    except OSError:
+        pass
+
     with FILEPATH.open("w") as fp:
         return json.dump(auth, fp)
 
