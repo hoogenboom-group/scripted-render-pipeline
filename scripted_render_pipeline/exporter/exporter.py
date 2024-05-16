@@ -101,7 +101,7 @@ class Downloader(abc.ABC):
             )
 
         if not z_values:
-            raise ValueError("no z values to download from stack {stack}")
+            raise ValueError(f"no z values to download from stack {stack}")
 
         # get bounds from render
         bounds = renderapi.stack.get_stack_bounds(
