@@ -24,16 +24,28 @@ class Mipmapper(abc.ABC):
     parallel: how many threads to use in parallel, optimises io usage
     clobber: wether to allow overwriting of existing mipmaps
     mipmap_path: where to save mipmaps, defaults to project_path/_mipmaps
+    reuse_old_mipmaps: option to instead of making new mipmaps discover
+        previously created mipmaps and give the same results based on the
+        source metadata as normal, implies clobber but no mipmaps will be
+        overwritten, instead they will be reused
     """
 
     def __init__(
-        self, project_path, parallel=1, clobber=False, mipmap_path=None
+        self,
+        project_path,
+        parallel=1,
+        clobber=False,
+        mipmap_path=None,
+        reuse_old_mipmaps=False,
     ):
         self.remote = False
         self.project_path = project_path
         self.clobber = clobber
         self.parallel = parallel
-        self.reuse_old_mipmaps = False
+        self.reuse_old_mipmaps = reuse_old_mipmaps
+        if reuse_old_mipmaps:
+            self.clobber = True
+
         if mipmap_path is None:
             self.mipmap_path = project_path / "_mipmaps"
         else:
