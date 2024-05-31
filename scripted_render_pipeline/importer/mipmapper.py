@@ -105,7 +105,7 @@ class Mipmapper(abc.ABC):
                 leveldict[level] = renderapi.image_pyramid.MipMap(url)
 
             if not leveldict:
-                raise RuntimeError(
+                raise FileNotFoundError(
                     f"found no mipmap files in output dir: {path}"
                 )
         else:
