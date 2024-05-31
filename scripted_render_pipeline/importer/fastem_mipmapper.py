@@ -129,19 +129,40 @@ class FASTEM_Mipmapper(Mipmapper):
             tags = tiff.pages[0].tags
             width, length = tags["ImageWidth"].value, tags["ImageLength"].value
 
-            # corrected tiffs don't include `DateTime` tag for some reason
-            if is_corrected:
-                # hacky way to get `DateTime` of corrected tiffs
-                # from the corresponding raw tiff file
-                file_path_to_raw = file_path.parents[1] / file_path.name
-                with tifffile.TiffFile(file_path_to_raw) as raw_tiff:
-                    raw_tags = raw_tiff.pages[0].tags
-                    timestr = raw_tags["DateTime"].value
+            try:
+                datetime_tag = tags["DateTime"]
+            except KeyError:
+                try:
+                    ijmetadata_tag = tags["IJMetadata"]
+                except KeyError:
+                    # corrected tiffs don't include `DateTime` tag
+                    # hacky way to get `DateTime` of corrected tiffs
+                    # from the corresponding raw tiff file, located one dir up
+                    file_path_to_raw = file_path.parents[1] / file_path.name
+                    if not file_path_to_raw.exists():
+                        raise RuntimeError(
+                            f"could not determine capture time for file: "
+                            f"{file_path}"
+                        )
+
+                    with tifffile.TiffFile(file_path_to_raw) as raw_tiff:
+                        raw_tags = raw_tiff.pages[0].tags
+                        timestr = raw_tags["DateTime"].value
+                else:
+                    for line in ijmetadata_tag.value["Info"].splitlines():
+                        if line.startswith("DateTime: "):
+                            break
+                    else:
+                        raise RuntimeError(
+                            f"tag IJMetadata Info does not contain DateTime "
+                            f"for file: {file_path}"
+                        )
+
+                    timestr = line[10:]  # len("DateTime: ")
             else:
-                timestr = tags["DateTime"].value
+                timestr = datetime_tag.value
 
-            time = datetime.datetime.fromisoformat(timestr)
-
+        time = datetime.datetime.fromisoformat(timestr)
         return pyramid, percentile, width, length, time
 
     def create_mipmaps(self, args):  # override

@@ -111,6 +111,12 @@ class Mipmapper(abc.ABC):
                 future = executor.submit(self.create_mipmaps, args)
                 futures.add(future)
 
+            if not futures:
+                logging.warning(
+                    "found no files, check if project paths are correct"
+                )
+                return []
+
             for future in tqdm(
                 concurrent.futures.as_completed(futures),
                 desc="making mipmaps",
