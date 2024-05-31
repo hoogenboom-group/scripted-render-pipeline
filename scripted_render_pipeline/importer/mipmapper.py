@@ -103,6 +103,11 @@ class Mipmapper(abc.ABC):
                 url = BASE_URL + self.to_server_path(path)
                 level = int(match.group(1))
                 leveldict[level] = renderapi.image_pyramid.MipMap(url)
+
+            if not leveldict:
+                raise RuntimeError(
+                    f"found no mipmap files in output dir: {path}"
+                )
         else:
             pyramid = skimage.transform.pyramid_gaussian(
                 image, downscale=2, max_layer=8, preserve_range=True
