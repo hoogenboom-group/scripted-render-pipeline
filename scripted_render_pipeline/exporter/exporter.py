@@ -9,8 +9,6 @@ import requests
 import tifffile
 import tqdm
 
-from ..basic_auth import load_auth
-
 SIZE = 1024  # download square chunks of SIZE by SIZE pixels
 DEFAULT_CONCURRENCY = 8  # limiting factor is server ram
 
@@ -26,6 +24,7 @@ class Downloader(abc.ABC):
         host,
         owner,
         project,
+        auth=None,
         downscaling=1,
         concurrency=DEFAULT_CONCURRENCY,
     ):
@@ -33,7 +32,7 @@ class Downloader(abc.ABC):
         session = requests.Session()
         adapter = requests.adapters.HTTPAdapter(pool_maxsize=self.concurrency)
         session.mount(host, adapter)
-        session.auth = load_auth()
+        session.auth = auth
 
         self.render_params = dict(
             host=host, owner=owner, project=project, session=session
@@ -230,6 +229,8 @@ def _draw_debug_marks(img, size, extras=None):
 
 
 def _main():
+    from ..basic_auth import load_auth
+
     logging.basicConfig(
         level=logging.DEBUG,
         format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
@@ -238,7 +239,13 @@ def _main():
     owner = "rlane"
     project = "20230523_singleholder_Earthworm_03_partial_partial_test"
     test_scale = 8
-    downloader = Array_Downloader(host, owner, project, test_scale)
+    downloader = Array_Downloader(
+        host,
+        owner,
+        project,
+        load_auth(),
+        test_scale,
+    )
     stacks = downloader.get_stacks()
     key = next(iter(stacks.keys()))  # just write the first stack
     imgs = stacks[key]

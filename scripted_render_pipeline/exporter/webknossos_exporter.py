@@ -110,6 +110,8 @@ class Webknossos_Exporter(exporter.Downloader):
 
 
 def _main():
+    from ..basic_auth import load_auth
+
     logging.basicConfig(
         level=logging.DEBUG,
         format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",
@@ -125,6 +127,7 @@ def _main():
         host,
         owner,
         project,
+        load_auth(),
         downscaling=test_scale,
         concurrency=concurrency,
     )
