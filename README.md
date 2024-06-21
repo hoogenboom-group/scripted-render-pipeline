@@ -1,13 +1,18 @@
 # scripted render pipeline
-automated pipeline interfacing with render-ws rest api
+Automated Python pipeline for processing volume electron microscopy (EM) and integrated correlative light and electron microscopy (CLEM) datasets, interfacing with the render-ws rest api. `scripted-render-pipeline` is configured to process (correlative) array tomography datasets in formats from FAST-EM, a multibeam scanning transmission electron microscope, and SECOM, an optical microscope for integrated correlative light and electron microscopy.
 
-### installation
+The software supports automated post-correction of FAST-EM datasets, import to render-ws of volume EM and CLEM datasets and export to (self-managed) WebKnossos instances.
+
+### Installation 
+This instruction assumes that `git` and Python are installed. Moreover, it is recommended to install the software in a Python virtual environment. Python 3.10 and later versions are supported.
+Clone the repository into a suitable target directory and install with `pip`:
 ```
+git clone https://github.com/hoogenboom-group/scripted-render-pipeline
 pip install --require-virtualenv .
 ```
 this will install required dependencies from PyPI as well
 
-### usage
+### Usage
 `render_import`  for importing to render
 
 `render_export`  for exporting to CATMAID or WebKnossos
