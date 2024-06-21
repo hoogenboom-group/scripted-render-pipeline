@@ -28,9 +28,12 @@ this will install required dependencies from PyPI as well
 
 Each module has a `main.py` file which executes the code when called from the command line using the commands listed above. Dataset and processing parameters can be set in this file. 
 
-### usage as module
+### Usage as module
 `python -m scripted_render_pipeline.importer`  for importing to render
 
 `python -m scripted_render_pipeline.basic_auth {show,save}`  for managing http basic auth credentials
 
 `python -m scripted_render_pipeline.exporter` for exporting to WebKnossos
+
+### Support
+This software is developed for scientific research projects at Delft University of Technology and is released with no fixed update schedule. The software is under active development and thus significant changes to the structure and functionality can be expected. 
