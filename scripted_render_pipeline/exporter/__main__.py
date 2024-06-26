@@ -21,7 +21,7 @@ DOWNSCALING = 1  # Downscale data for testing. Default is 1 (normal resolution)
 DOWNSAMPLE = 7  # How many times to downsample data
 CONCURRENCY = 8  # Default number of processes to use
 PATH = Path(
-    "/long_term_storage/webknossos/binaryData/hoogenboom-group/{PROJECT}" 
+    f"/long_term_storage/webknossos/binaryData/hoogenboom-group/{PROJECT}" 
 ) # Path to target WebKnossos folder, replace with target directory on disk
 
 
