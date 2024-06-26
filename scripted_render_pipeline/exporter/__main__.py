@@ -1,4 +1,5 @@
 """exporter script
+Export datasets to WebKnossos
 
 relies on provided parameters being set in the script for now
 """
