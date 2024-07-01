@@ -8,6 +8,11 @@ The following is currently supported:
 
 This repository is tied to the [interactive render workflow](https://github.com/hoogenboom-group/interactive-render-workflow), which covers (supervised) 2D stitching and 3D alignment of FAST-EM data. The modules in the `scripted-render-pipeline` can be used in the `interactive-render-workflow`.
 
+### Requirements
+- Server with Linux distribution (Ubutuntu) and decent computation power (>128 GB RAM, >40 CPU cores).
+- [render-ws](https://github.com/saalfeldlab/render/blob/b06be441f3c78e1423c54bce20b291752c6d0773/docs/src/site/markdown/render-ws.md) installation ([setup instructions](https://github.com/hoogenboom-group/em-infrastructure/blob/master/docs/Render-ws.md))
+- Local WebKnossos instance ([setup instructions](https://github.com/hoogenboom-group/em-infrastructure/blob/master/docs/Webknossos.md)). Since we are using a self-hosted WebKnossos instance, export to the [Remote WebKnossos](https://webknossos.org/) is currently not supported be can be considered on request. 
+
 ### Installation 
 This instruction assumes that `git` and Python are installed. Moreover, it is recommended to install the software in a Python virtual environment. Python 3.10 and later versions are supported.
 Clone the repository into a suitable target directory and install with `pip`:
