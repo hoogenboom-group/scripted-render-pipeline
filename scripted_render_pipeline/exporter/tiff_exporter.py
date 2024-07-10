@@ -23,7 +23,7 @@ class Tiff_Exporter(exporter.Downloader):
         super().__init__(*args, **kwargs)
 
     def save(self, stack, index_x, index_y, index_z, data):  # overwrite
-        path = self.location.joinpath(stack, index_z)
+        path = self.location.joinpath(stack, f"{index_z}")
         path.mkdir(parents=True, exist_ok=True)
         filename = path.joinpath(f"{index_x}_{index_y}.tiff")
         tifffile.imwrite(filename, data)
