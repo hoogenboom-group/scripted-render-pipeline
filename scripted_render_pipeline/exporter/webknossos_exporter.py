@@ -21,6 +21,7 @@ class Webknossos_Exporter(exporter.Downloader):
     host: render hostname
     owner: render owner
     project: render project
+    auth: basic auth as returned by basic_auth.load_auth, default None
     downscaling: for testing the render project can be downscaled
         note, this affects voxel_size
         defaults to 1 (real size)
