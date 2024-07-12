@@ -1,3 +1,4 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.12733386.svg)](https://doi.org/10.5281/zenodo.12733386)
 # scripted render pipeline
 Automated Python pipeline for processing volume electron microscopy (EM) and integrated correlative light and electron microscopy (CLEM) datasets, interfacing with the [render-ws](https://github.com/saalfeldlab/render/blob/master/docs/src/site/markdown/render-ws.md) rest api. `scripted-render-pipeline` is configured to process (correlative) array tomography datasets in formats from [FAST-EM](https://www.delmic.com/en/products/fast-imaging/fast-em), a multibeam scanning transmission electron microscope, and [SECOM](https://www.delmic.com/en/products/clem-solutions/secom), an optical microscope for integrated correlative light and electron microscopy.
 
