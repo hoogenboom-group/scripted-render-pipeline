@@ -371,16 +371,18 @@ class Post_Corrector:
                 )
 
     def find_files(self):
+        try:
+            num_sections = len(self.project_paths)
+        except AttributeError:
+            num_sections = 1
         logging.info(
-            f"reading data from {len(self.project_paths)} section(s) using "
-            f"{min(self.parallel, len(self.project_paths))} threads"
-        )
+                f"reading data from {num_sections} section(s) using "
+                f"{min(self.parallel, num_sections)} threads"
+                )
         try:
             iterator = self.project_paths.items()
         except AttributeError:
-            iterator = self.project_paths
-        except ValueError:
-            iterator = self.project_path
+            iterator = [self.project_path]
         filepaths_per_section = (
             list(path.glob(TIFFILE_GLOB)) for path in iterator
         )
