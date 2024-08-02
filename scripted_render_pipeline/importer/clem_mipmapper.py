@@ -55,7 +55,14 @@ class CLEM_Mipmapper(Mipmapper):
             # the metadata is saved as an OME-XML in the description of the
             # first tiff IFD
             metadata = tiff.pages[0].description
-            root = xml.etree.ElementTree.fromstring(metadata)
+            try:
+                root = xml.etree.ElementTree.fromstring(metadata)
+            except xml.etree.ElementTree.ParseError:  
+                # In newly acquired datasets the first 7 lines are ImageJ stuff
+                # Remove them and try again
+                metadata = "\n".join(metadata.split("\n")[7:])
+                root = xml.etree.ElementTree.fromstring(metadata)
+                
             image_elements = root.findall("Image", NAMESPACE)
             image_elements_by_name = {
                 element.attrib["Name"]: element for element in image_elements
