@@ -14,9 +14,9 @@ from ..basic_auth import load_auth
 
 # Export parameters
 HOST = "https://sonic.tnw.tudelft.nl" # Web address which hosts render-ws. It's usually the preamble of the link to render-ws html page, i.e. {host_name}/render-ws/view/index.html
-OWNER = "akievits" # render-ws ID of dataset
-PROJECT = "20231107_MCF7_UAC_test" # Project name in render-ws
-STACKS_2_EXPORT = ["postcorrection_rigid_scaled"]  # Python list of stacks (strings) in render-ws to export (separated by commas)
+OWNER = "skaracoban" # render-ws ID of dataset
+PROJECT = "20240802_SK001" # Project directory on disk
+STACKS_2_EXPORT = ["EM_himag_stitched", "exc_470nm_correlated"]  # Python list of stacks (strings) in render-ws to export (separated by commas)
 DOWNSCALING = 1  # Downscale data for testing. Default is 1 (normal resolution)
 DOWNSAMPLE = 7  # How many times to downsample data
 CONCURRENCY = 8  # Default number of processes to use
@@ -54,6 +54,7 @@ def _main():
         voxel_size=voxel_size,
         downsample=DOWNSAMPLE,
         concurrency=CONCURRENCY,
+        auth=(USER, PASSWORD),
     )
     wk_exporter.download_project(stacks=STACKS_2_EXPORT)
 
