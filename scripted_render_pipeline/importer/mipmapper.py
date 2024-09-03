@@ -2,6 +2,7 @@ import abc
 import concurrent.futures
 import logging
 import pathlib
+import re
 import typing
 
 import numpy as np
@@ -13,6 +14,7 @@ from tqdm import tqdm
 from .render_specs import Section, Stack
 
 BASE_URL = ""  # "file://"
+OLD_MIPMAP_RX = re.compile("([0-9]+).tif")
 
 
 class Mipmapper(abc.ABC):
@@ -22,15 +24,28 @@ class Mipmapper(abc.ABC):
     parallel: how many threads to use in parallel, optimises io usage
     clobber: wether to allow overwriting of existing mipmaps
     mipmap_path: where to save mipmaps, defaults to project_path/_mipmaps
+    reuse_old_mipmaps: option to instead of making new mipmaps discover
+        previously created mipmaps and give the same results based on the
+        source metadata as normal, implies clobber but no mipmaps will be
+        overwritten, instead they will be reused
     """
 
     def __init__(
-        self, project_path, parallel=1, clobber=False, mipmap_path=None
+        self,
+        project_path,
+        parallel=1,
+        clobber=False,
+        mipmap_path=None,
+        reuse_old_mipmaps=False,
     ):
         self.remote = False
         self.project_path = project_path
         self.clobber = clobber
         self.parallel = parallel
+        self.reuse_old_mipmaps = reuse_old_mipmaps
+        if reuse_old_mipmaps:
+            self.clobber = True
+
         if mipmap_path is None:
             self.mipmap_path = project_path / "_mipmaps"
         else:
@@ -77,22 +92,40 @@ class Mipmapper(abc.ABC):
         returns the render pyramid
         """
         leveldict = {}
-        pyramid = skimage.transform.pyramid_gaussian(
-            image, downscale=2, max_layer=8, preserve_range=True
-        )
-        for level, pyramid_image in enumerate(pyramid):
-            new_file_name = f"{level}.tif"
-            new_file_path = output_dir / new_file_name
-            # if overwriting is off this will always be a new dir, no need to
-            # check if the image exists before overwriting
-            with tifffile.TiffWriter(new_file_path) as fp:
-                fp.write(
-                    pyramid_image.astype(np.uint16), description=description
-                )
+        if self.reuse_old_mipmaps:
+            for path in output_dir.iterdir():
+                match = OLD_MIPMAP_RX.match(path.name)
+                if match is None:
+                    raise RuntimeError(
+                        f"found non mipmap file in output dir: {path}"
+                    )
 
-            url = BASE_URL + self.to_server_path(new_file_path)
-            leveldict[int(level)] = renderapi.image_pyramid.MipMap(url)
-            description = None  # don't add the description to all of them
+                url = BASE_URL + self.to_server_path(path)
+                level = int(match.group(1))
+                leveldict[level] = renderapi.image_pyramid.MipMap(url)
+
+            if not leveldict:
+                raise FileNotFoundError(
+                    f"found no mipmap files in output dir: {path}"
+                )
+        else:
+            pyramid = skimage.transform.pyramid_gaussian(
+                image, downscale=2, max_layer=8, preserve_range=True
+            )
+            for level, pyramid_image in enumerate(pyramid):
+                new_file_name = f"{level}.tif"
+                new_file_path = output_dir / new_file_name
+                # if overwriting is off this will always be a new dir, no need
+                # to check if the image exists before overwriting
+                with tifffile.TiffWriter(new_file_path) as fp:
+                    fp.write(
+                        pyramid_image.astype(np.uint16),
+                        description=description,
+                    )
+
+                url = BASE_URL + self.to_server_path(new_file_path)
+                leveldict[int(level)] = renderapi.image_pyramid.MipMap(url)
+                description = None  # don't add the description to all of them
 
         return renderapi.image_pyramid.ImagePyramid(leveldict)
 
