@@ -6,9 +6,6 @@ import tifffile
 from .fastem_mipmapper import FASTEM_Mipmapper
 
 
-RESTORE_MEAN_LEVEL = 0x8000
-
-
 class Post_Correction_Mipmapper(FASTEM_Mipmapper):
     """creates mipmaps from images and collects tile specs for the fastem
 
@@ -37,62 +34,74 @@ class Post_Correction_Mipmapper(FASTEM_Mipmapper):
         self.threshold = threshold
         self.min_clean_images = 20
 
+    def get_percentile(self, args):
+        file_path, *_ = args
+        with tifffile.TiffFile(file_path) as tiff:
+            if not tiff.pages:
+                raise RuntimeError(f"found empty tifffile: {file_path}")
+
+            image = tiff.pages[0].asarray()
+            return np.percentile(image, self.percentile)
+
     def set_medians(self):
         """calculate and set internal median and median absolute deviation"""
         percentiles = []
-        for args in self.find_files():
-            file_path, *_ = args
-            with tifffile.TiffFile(file_path) as tiff:
-                if not tiff.pages:
-                    raise RuntimeError(f"found empty tifffile: {file_path}")
+        for percentile in self.threaded_read_files(
+            self.get_percentile, "calculating percentiles"
+        ):
+            percentiles.append(percentile)
 
-                image = tiff.pages[0].asarray()
-                percentiles.append(np.percentile(image, self.percentile))
-
-        self.median = np.median(percentiles)
+        self.median = np.median(percentiles, 0)
         absolute_deviations = []
         for percentile in percentiles:
-            absolute_deviations.append(percentile - self.median)
+            absolute = np.abs(percentile - self.median)
+            absolute_deviations.append(absolute)
 
-        self.median_absolute_deviation = np.median(absolute_deviations)
+        self.median_absolute_deviation = np.median(absolute_deviations, 0)
 
     def set_background(self):
         """calculate and set internal background image"""
         clean_image_count = 0
+        total_count = 0
         sum_of_files = 0.0  # set to float to avoid integer overflow
-        for args in self.find_files():
-            file_path, *_ = args
-            result = self.calculate_background_for_path(file_path)
-            if result:
+        for result in self.threaded_read_files(
+            self.calculate_background_for_path, "validating and reading images"
+        ):
+            total_count += 1
+            if result is not None:
                 sum_of_files += result
                 clean_image_count += 1
 
-        logging.info(f"found {clean_image_count} clean images")
+        logging.info(
+            f"found {clean_image_count} clean images out of {total_count}"
+        )
         if clean_image_count < self.min_clean_images:
             raise RuntimeError(
                 "amount of clean images is less than {self.min_clean_images}!"
             )
 
         self.background = sum_of_files / clean_image_count
-        del self.sum_of_files
+        self.background -= np.mean(self.background)  # balance around mean
 
-    def calculate_background_for_path(self, file_path):
-        """add file at file_path to the calculation for the backgrIound
+    def calculate_background_for_path(self, args):
+        """add file at file_path to the calculation for the background
 
-        returns the image if it is within acceptable limits or None
+        returns the image if it is within acceptable limits else None
         """
+        file_path, *_ = args
         with tifffile.TiffFile(file_path) as tiff:
             if not tiff.pages:
                 raise RuntimeError(f"found empty tifffile: {file_path}")
 
             image = tiff.pages[0].asarray()
-            result = np.percentile(image, self.percentile)
+            low, high = np.percentile(image, self.percentile)
             limit_range = self.threshold * self.median_absolute_deviation
-            lower_limit = self.median - limit_range
-            upper_limit = self.median + limit_range
-            if lower_limit < result < upper_limit:
+            lower_limit = self.median[0] - limit_range[0]
+            upper_limit = self.median[1] + limit_range[1]
+            if lower_limit < low and high < upper_limit:
                 return image
             else:
+                # logging.info(f"image at {file_path} has been rejected")
                 return None
 
     def create_all_mipmaps(self):  # overwrite
@@ -100,8 +109,15 @@ class Post_Correction_Mipmapper(FASTEM_Mipmapper):
         self.set_medians()
         logging.info("calculating background")
         self.set_background()
+        logging.info("creating mipmaps")
         return super().create_all_mipmaps()
 
     def make_pyramid(self, output_dir, image, description):  # overwrite
-        post_corrected = image - self.background + RESTORE_MEAN_LEVEL
+        post_corrected = image - self.background
+        post_corrected = post_corrected.astype(image.dtype)
         return super().make_pyramid(output_dir, post_corrected, description)
+
+    def read_tiff(self, *args, **kwargs):  # overwrite
+        pyramid, unused_percentile, *rest = super().read_tiff(*args, **kwargs)
+        # use median percentile for all tiles
+        return pyramid, self.median, *rest

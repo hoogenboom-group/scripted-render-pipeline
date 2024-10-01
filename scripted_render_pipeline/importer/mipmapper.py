@@ -11,7 +11,7 @@ import skimage.transform
 import tifffile
 from tqdm import tqdm
 
-from .render_specs import Section, Stack
+from .render_specs import Section, Stack, Tile
 
 BASE_URL = ""  # "file://"
 OLD_MIPMAP_RX = re.compile("([0-9]+).tif")
@@ -134,40 +134,20 @@ class Mipmapper(abc.ABC):
 
         returns list of stacks
         """
-        futures = set()
         all_sections = {}
-        executor = concurrent.futures.ThreadPoolExecutor(
-            max_workers=self.parallel
-        )
-        try:
-            for args in self.find_files():
-                future = executor.submit(self.create_mipmaps, args)
-                futures.add(future)
+        for tiles in self.threaded_read_files(
+            self.create_mipmaps, "making mipmaps"
+        ):
+            for tile in tiles:
+                stack = all_sections.setdefault(tile.stackname, {})
+                try:
+                    section = stack[tile.zvalue]
+                except KeyError:
+                    section = stack[tile.zvalue] = Section(
+                        tile.zvalue, tile.stackname
+                    )
 
-            for future in tqdm(
-                concurrent.futures.as_completed(futures),
-                desc="making mipmaps",
-                total=len(futures),
-                unit="img",
-                smoothing=min(100 / len(futures), 0.3),
-            ):
-                futures.remove(future)
-                tiles = future.result()
-                for tile in tiles:
-                    stack = all_sections.setdefault(tile.stackname, {})
-                    try:
-                        section = stack[tile.zvalue]
-                    except KeyError:
-                        section = stack[tile.zvalue] = Section(
-                            tile.zvalue, tile.stackname
-                        )
-
-                    section.add_tile(tile)
-        finally:
-            for future in futures:
-                future.cancel()
-
-            executor.shutdown()
+                section.add_tile(tile)
 
         all_stacks = []
         for name, sections in all_sections.items():
@@ -183,16 +163,56 @@ class Mipmapper(abc.ABC):
         )
         return all_stacks
 
+    # these types are used to clarify the typing with the interaction between
+    # threaded_find_files and find_files
+    return_type = typing.Iterable[Tile]
+    find_files_type = typing.TypeVar("find_files_type")
+
     @abc.abstractmethod
-    def find_files(self):
+    def find_files(self) -> find_files_type:
         """generator that finds all the files to read in self.project_path
 
         yields args for create_mipmaps
         """
 
     @abc.abstractmethod
-    def create_mipmaps(self, args):
+    def create_mipmaps(self, args: find_files_type) -> return_type:
         """create mipmaps for a file
 
         args: result yielded from find_files
         """
+
+    def threaded_read_files(
+        self, func: typing.Callable[[find_files_type], return_type], desc: str
+    ) -> typing.Generator[return_type, None, None]:
+        """read all files from find_files and run func on them
+
+        func: asynchronously calls func on each result from find_files
+        desc: description to show in the loading bar
+        yields the result from the asynchronously called func
+
+        this generator will correctly terminate running tasks when exited early
+        """
+        futures = set()
+        executor = concurrent.futures.ThreadPoolExecutor(
+            max_workers=self.parallel
+        )
+        try:
+            for args in self.find_files():
+                future = executor.submit(func, args)
+                futures.add(future)
+
+            for future in tqdm(
+                concurrent.futures.as_completed(futures),
+                desc=desc,
+                total=len(futures),
+                unit="img",
+                smoothing=min(100 / len(futures), 0.3),
+            ):
+                futures.remove(future)
+                yield future.result()
+        finally:
+            for future in futures:
+                future.cancel()
+
+            executor.shutdown()
