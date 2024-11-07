@@ -32,7 +32,7 @@ class Post_Correction_Mipmapper(FASTEM_Mipmapper):
             self.percentile = low, high
 
         self.threshold = threshold
-        self.min_clean_images = 20
+        self.min_clean_images = min_clean_images
 
     def get_percentile(self, args):
         file_path, *_ = args
@@ -77,7 +77,8 @@ class Post_Correction_Mipmapper(FASTEM_Mipmapper):
         )
         if clean_image_count < self.min_clean_images:
             raise RuntimeError(
-                "amount of clean images is less than {self.min_clean_images}!"
+                f"amount of clean images is less than {self.min_clean_images}!"
+                f"({clean_image_count})"
             )
 
         self.background = sum_of_files / clean_image_count
