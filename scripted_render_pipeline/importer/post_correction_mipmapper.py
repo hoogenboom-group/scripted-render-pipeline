@@ -6,6 +6,10 @@ import tifffile
 from .fastem_mipmapper import FASTEM_Mipmapper
 
 
+class NotEnoughCleanImagesError(RuntimeError):
+    """error for when there are not enough images meeting the requirements"""
+
+
 class Post_Correction_Mipmapper(FASTEM_Mipmapper):
     """creates mipmaps from images and collects tile specs for the fastem
 
@@ -76,7 +80,7 @@ class Post_Correction_Mipmapper(FASTEM_Mipmapper):
             f"found {clean_image_count} clean images out of {total_count}"
         )
         if clean_image_count < self.min_clean_images:
-            raise RuntimeError(
+            raise NotEnoughCleanImagesError(
                 f"amount of clean images is less than {self.min_clean_images}!"
                 f"({clean_image_count})"
             )
