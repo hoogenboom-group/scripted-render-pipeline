@@ -1,7 +1,5 @@
 """post-correction script for FAST-EM datasets
-Computes average correction image per section
-Outlier images are excluded from average based on median absolute deviation
-Produces a directory "postcorrection" with corrected images per section
+Computes median image of sample per sections
 
 relies on provided parameters being set in the script for now
 """
@@ -22,10 +20,6 @@ PROJECT_PATH = (
 ) / f"akievits/FAST-EM/tests/{PROJECT}" # Path to data 
 MULTIPLE_SECTIONS = True  # Set to False for a single section (assumes that project folder contains data and there are no subdirectories for individual sections)
 
-# Processing parameters
-PCT = 0.1 # Histogram percentile for computing Median Absolute Deviation (MAD)
-A = 3 # Scaling factor for allowing smaller or larger deviations from the MED. Suggested values: 1, 3
-
 if MULTIPLE_SECTIONS:
     PROJECT_PATHS = natsorted([p for p in PROJECT_PATH.iterdir() if (p.is_dir() and not p.name.startswith('_'))])
 else:
@@ -37,20 +31,9 @@ def _main():
         PROJECT_PATH,
         PARALLEL,
         CLOBBER,
-        pct=PCT,
-        a=A,
         project_paths=PROJECT_PATHS,
     )
-
-    failed_sections = post_corrector.post_correct_all_sections()
-    if not failed_sections:
-        logging.info("post-correction completed succesfully")
-    else:
-        logging.info("Post_correction failed for: %s", [section.name for section in failed_sections])      
-        logging.info("Detected failed sections. Rerunning post-correction using nearest available correction image")
-        post_corrector.post_correct_failed_sections(failed_sections)
-
-
+    post_corrector.post_correct_all_sections()
 
 if __name__ == "__main__":
     logging.basicConfig(
