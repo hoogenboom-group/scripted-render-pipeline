@@ -16,6 +16,7 @@ SCOPE_ID = "FASTEM"
 METADATA_FILENAME = "mega_field_meta_data.yaml"
 POSITIONS_FILENAME = "positions.txt"
 CORRECTIONS_DIR = "postcorrection"
+ORIGIN_DIR = "original"
 DEFAULT_STACK_NAME = "raw"
 IMAGE_FILENAME_PADDING = 3
 TIFFILE_GLOB = (
@@ -61,9 +62,9 @@ class FASTEM_Mipmapper(Mipmapper):
             bool: True if the original tiff file is found.
         """
         if is_corrected:
-            return (fp.parents[1] / "original").exists()
+            return (fp.parents[1] / ORIGIN_DIR).exists()
 
-        return (fp.parent / "original").exists()
+        return (fp.parent / ORIGIN_DIR).exists()
 
     def __init__(
         self, *args, project_paths=None, use_positions=False, **kwargs
@@ -153,9 +154,9 @@ class FASTEM_Mipmapper(Mipmapper):
             if self._has_origin(file_path, is_corrected):
                 datetime_in_file = False
                 if is_corrected:
-                    file_path_to_raw = file_path.parents[1] / "original" / file_path.name
+                    file_path_to_raw = file_path.parents[1] / ORIGIN_DIR / file_path.name
                 else:
-                    file_path_to_raw = file_path.parent / "original" / file_path.name
+                    file_path_to_raw = file_path.parent / ORIGIN_DIR / file_path.name
 
             # corrected tiffs don't include `DateTime` tag for some reason
             if datetime_in_file:
