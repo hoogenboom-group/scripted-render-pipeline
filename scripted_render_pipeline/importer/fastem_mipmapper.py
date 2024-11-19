@@ -157,6 +157,9 @@ class FASTEM_Mipmapper(Mipmapper):
                     file_path_to_raw = file_path.parents[1] / ORIGIN_DIR / file_path.name
                 else:
                     file_path_to_raw = file_path.parent / ORIGIN_DIR / file_path.name
+            elif is_corrected:
+                datetime_in_file = False
+                file_path_to_raw = file_path.parents[1] / file_path.name
 
             # corrected tiffs don't include `DateTime` tag for some reason
             if datetime_in_file:
