@@ -1,6 +1,7 @@
 import datetime
 import logging
 import re
+from pathlib import Path
 
 import numpy as np
 import renderapi
@@ -45,6 +46,24 @@ class FASTEM_Mipmapper(Mipmapper):
     project_paths: iterable of multiple project paths, indexed by zlevel
     use_positions: use the transforms from the positions.txt file
     """
+
+    @staticmethod
+    def _has_origin(fp: Path, is_corrected: bool) -> bool:
+        """
+        Check if there is an link to the original tiff file.
+        Either in the same folder or (if corrected) in the parent folder.
+
+        Args:
+            fp: Path to the (corrected) tiff file.
+            is_corrected: True if the tiff file is a corrected one.
+
+        Returns:
+            bool: True if the original tiff file is found.
+        """
+        if is_corrected:
+            return (fp.parents[1] / "original").exists()
+
+        return (fp.parent / "original").exists()
 
     def __init__(
         self, *args, project_paths=None, use_positions=False, **kwargs
@@ -111,7 +130,7 @@ class FASTEM_Mipmapper(Mipmapper):
 
         return positions
 
-    def read_tiff(self, output_dir, file_path, is_corrected):
+    def read_tiff(self, output_dir: Path, file_path: Path, is_corrected: bool):
         """read one tiff and generate mipmaps
 
         output_dir: location to put mipmaps
@@ -129,16 +148,24 @@ class FASTEM_Mipmapper(Mipmapper):
             tags = tiff.pages[0].tags
             width, length = tags["ImageWidth"].value, tags["ImageLength"].value
 
+            datetime_in_file: bool = True
+
+            if self._has_origin(file_path, is_corrected):
+                datetime_in_file = False
+                if is_corrected:
+                    file_path_to_raw = file_path.parents[1] / "original" / file_path.name
+                else:
+                    file_path_to_raw = file_path.parent / "original" / file_path.name
+
             # corrected tiffs don't include `DateTime` tag for some reason
-            if is_corrected:
+            if datetime_in_file:
+                timestr = tags["DateTime"].value
+            else:
                 # hacky way to get `DateTime` of corrected tiffs
                 # from the corresponding raw tiff file
-                file_path_to_raw = file_path.parents[1] / file_path.name
                 with tifffile.TiffFile(file_path_to_raw) as raw_tiff:
                     raw_tags = raw_tiff.pages[0].tags
                     timestr = raw_tags["DateTime"].value
-            else:
-                timestr = tags["DateTime"].value
 
             time = datetime.datetime.fromisoformat(timestr)
 
