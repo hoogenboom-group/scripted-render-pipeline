@@ -57,12 +57,12 @@ class CLEM_Mipmapper(Mipmapper):
             metadata = tiff.pages[0].description
             try:
                 root = xml.etree.ElementTree.fromstring(metadata)
-            except xml.etree.ElementTree.ParseError:  
+            except xml.etree.ElementTree.ParseError:
                 # In newly acquired datasets the first 7 lines are ImageJ stuff
                 # Remove them and try again
-                metadata = "\n".join(metadata.split("\n")[7:])
+                metadata = metadata.split("\n", 7)[-1]
                 root = xml.etree.ElementTree.fromstring(metadata)
-                
+
             image_elements = root.findall("Image", NAMESPACE)
             image_elements_by_name = {
                 element.attrib["Name"]: element for element in image_elements
