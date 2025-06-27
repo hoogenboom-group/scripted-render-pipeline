@@ -124,6 +124,7 @@ class Mipmapper(abc.ABC):
                     )
 
                 url = BASE_URL + self.to_server_path(new_file_path)
+                # print(url)
                 leveldict[int(level)] = renderapi.image_pyramid.MipMap(url)
                 description = None  # don't add the description to all of them
 

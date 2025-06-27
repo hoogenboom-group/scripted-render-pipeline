@@ -62,7 +62,7 @@ class Post_Corrector:
         all_paths = []
         for filepaths in self.find_files():
             fp_sample = random.sample(filepaths, SAMPLE_SIZE)
-            all_paths += fp_sample   
+            all_paths += fp_sample
         # Compute MED and MAD from global sample
         logging.info("Estimating global med and mad values")
         med = self.get_med(all_paths, pct=self.pct)
@@ -94,9 +94,9 @@ class Post_Corrector:
                 future.cancel()
 
             executor.shutdown()
-    
+
         return failed_sections
-        
+
     def post_correct_failed_sections(self, failed_sections):
         """create post-corrected images for all sections that failed initial post-correction"""
         # Compute correction for failed sections
@@ -111,7 +111,7 @@ class Post_Corrector:
             for filepaths in filepaths_per_section:
                 future = executor.submit(
                     self.post_correct_failed_section(filepaths)
-                    )
+                )
                 futures.add(future)
 
             for future in tqdm(
@@ -122,13 +122,12 @@ class Post_Corrector:
                 smoothing=min(100 / len(futures), 0.3),
             ):
                 futures.remove(future)
-                
+
         finally:
             for future in futures:
                 future.cancel()
 
             executor.shutdown()
-        
 
     def post_correct_section(self, filepaths: list, med, mad):
         """create post_corrected images for one section
@@ -149,14 +148,14 @@ class Post_Corrector:
                 )
                 if not corrupted:
                     fps_clean.append(file_path)
-        # Create post-corrected images based on non-corrupted images 
+        # Create post-corrected images based on non-corrupted images
         # only if sufficient number of clean images is available
         if len(fps_clean) > MIN_CLEAN:
             self.post_correct(filepaths, fps_clean)
             return []
         else:
-            return [filepaths[0].parent] # Path to failed section
-            
+            return [filepaths[0].parent]  # Path to failed section
+
     def get_med(self, filepaths, pct=1):
         """Get median value of given percentile of select images"""
         # Collect percentile values
@@ -268,7 +267,7 @@ class Post_Corrector:
             background.astype(np.uint16),
             None,
         )
-    
+
     def post_correct_failed_section(self, filepaths: list):
         """Reapply post-processing corrections to images without correction
         Correction image is used from nearest section
@@ -282,26 +281,26 @@ class Post_Corrector:
         section_dir = filepaths[0].parent
         post_correction_dir = section_dir / POST_CORRECTIONS_DIR
         post_correction_dir.mkdir(parents=True, exist_ok=self.clobber)
-        
+
         # Copy metadata because render_import requires it
         shutil.copyfile(
             section_dir / METADATA_FILENAME,
             post_correction_dir / METADATA_FILENAME,
         )
-        # Hacky way to fetch background image from nearest section 
-        # starting with the section index below, then alterating 
+        # Hacky way to fetch background image from nearest section
+        # starting with the section index below, then alterating
         # sections further above or below the section
-        s_i = self.project_paths.index(section_dir) # Section index
-        lower = self.project_paths[:s_i][::-1] # Reverse 
+        s_i = self.project_paths.index(section_dir)  # Section index
+        lower = self.project_paths[:s_i][::-1]  # Reverse
         higher = self.project_paths[s_i+1:]
-        paths_2_search = [item for pair in zip_longest(lower, higher) for item in pair] # Pads with NoneType elements
+        paths_2_search = [item for pair in zip_longest(lower, higher) for item in pair]  # Pads with NoneType elements
         paths_2_search = [path for path in paths_2_search if path is not None]
-            
+
         # Iterate through nearest adjacent images
         for dir in paths_2_search:
             fp_correction = dir / POST_CORRECTIONS_DIR / "sum_of_files.tiff"
-            try: 
-                background = tifffile.imread(fp_correction.as_posix()) # Fails if image does not exists
+            try:
+                background = tifffile.imread(fp_correction.as_posix())  # Fails if image does not exists
             except FileNotFoundError:
                 continue
             else:
@@ -376,13 +375,14 @@ class Post_Corrector:
         except AttributeError:
             num_sections = 1
         logging.info(
-                f"reading data from {num_sections} section(s) using "
-                f"{min(self.parallel, num_sections)} threads"
-                )
-        try:
-            iterator = self.project_paths.items()
-        except AttributeError:
-            iterator = [self.project_path]
+            f"reading data from {num_sections} section(s) using "
+            f"{min(self.parallel, num_sections)} threads"
+        )
+        # try:
+        #     iterator = self.project_paths.items()
+        # except AttributeError:
+        #     iterator = [self.project_path]
+        iterator = self.project_paths
         filepaths_per_section = (
             list(path.glob(TIFFILE_GLOB)) for path in iterator
         )

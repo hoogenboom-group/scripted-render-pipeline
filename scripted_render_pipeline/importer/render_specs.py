@@ -230,8 +230,10 @@ class Stack:
     def add_section(self, section: Section):
         """finalise a section and add it to this stack"""
         if self.pixel_size and section.pixel_size != self.pixel_size:
+            # self.pixel_size = section.pixel_size
+
             raise ValueError(
-                "{section} has wrong pixel_size, expected {self.pixel_size}"
+                f"{section.name} has wrong pixel_size ({section.pixel_size}), expected {self.pixel_size}"
             )
         else:
             self.pixel_size = section.pixel_size

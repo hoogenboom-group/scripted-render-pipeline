@@ -13,16 +13,18 @@ from .webknossos_exporter import Webknossos_Exporter
 from ..basic_auth import load_auth
 
 # Export parameters
-HOST = "https://sonic.tnw.tudelft.nl" # Web address which hosts render-ws. It's usually the preamble of the link to render-ws html page, i.e. {host_name}/render-ws/view/index.html
-OWNER = "skaracoban" # render-ws ID of dataset
-PROJECT = "20240802_SK001" # Project directory on disk
-STACKS_2_EXPORT = ["EM_himag_stitched", "exc_470nm_correlated"]  # Python list of stacks (strings) in render-ws to export (separated by commas)
+# Web address which hosts render-ws. It's usually the preamble of the link to render-ws html page, i.e. {host_name}/render-ws/view/index.html
+HOST = "https://sonic.tnw.tudelft.nl"
+OWNER = "skaracoban"  # render-ws ID of dataset
+PROJECT = "20250410_psi_2_hist_eq_crop"  # Project directory on disk
+# Python list of stacks (strings) in render-ws to export (separated by commas)
+STACKS_2_EXPORT = ["postcorrection_rigid_scaled"]
 DOWNSCALING = 1  # Downscale data for testing. Default is 1 (normal resolution)
 DOWNSAMPLE = 7  # How many times to downsample data
 CONCURRENCY = 8  # Default number of processes to use
 PATH = Path(
-    f"/long_term_storage/webknossos/binaryData/hoogenboom-group/{PROJECT}" 
-) # Path to target WebKnossos folder, replace with target directory on disk
+    f"/long_term_storage/webknossos/binaryData/hoogenboom-group/{PROJECT}"
+)  # Path to target WebKnossos folder, replace with target directory on disk
 
 
 def _main():
@@ -44,6 +46,13 @@ def _main():
         stack_metadata[0].stackResolutionY,
         stack_metadata[0].stackResolutionZ,
     )
+
+    for meta in stack_metadata:
+        assert (
+            meta.stackResolutionX == voxel_size[0]
+            and meta.stackResolutionY == voxel_size[1]
+            and meta.stackResolutionZ == voxel_size[2]
+        )
 
     wk_exporter = Webknossos_Exporter(
         location=PATH,
