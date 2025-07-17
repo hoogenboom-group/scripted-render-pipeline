@@ -15,6 +15,7 @@ from .render_specs import Axis, Tile
 # constants
 SECTION_DIR_PADDING = 3  # amount of digits in a section directory
 SECTION_DIR_GLOB = "S" + "[0-9]" * SECTION_DIR_PADDING
+XY = "X", "Y"
 # amount of digits in each coordinate on an image file name
 IMAGE_FILENAME_PADDING = 5
 TIFFILE_GLOB = (
@@ -41,7 +42,7 @@ xml.etree.ElementTree.register_namespace("", OME_NAMESPACE_URI)
 
 
 class CLEM_Mipmapper(Mipmapper):
-    """creates mipmaps from images and collects tile specs for the CLEM
+    """creates mipmaps from images and collects tile specs for CLEM
 
     project_path: path to project to make mipmaps for
     parallel: how many threads to use in parallel, optimises io usage
@@ -49,12 +50,17 @@ class CLEM_Mipmapper(Mipmapper):
     mipmap_path: where to save mipmaps, defaults to project_path/_mipmaps
 
     additional optional named arguments:
-    invert_em_contrast: inverts the image for the em channel to re
+    invert_em: invert the em layer, this converts backscatter detector type
+        images to look like transmission results, defaults to True,
+        for OSTEM images set this to False
+    use_transforms: use the transforms from the included metadata,
+        defaults to False
     """
 
-    def __init__(self, *args, invert_em_contrast=True, **kwargs):
+    def __init__(self, *args, invert_em=True, use_transforms=False, **kwargs):
         super().__init__(*args, **kwargs)
-        self.invert_em_contrast = invert_em_contrast
+        self.invert_em = invert_em
+        self.use_transforms = use_transforms
 
     def create_mipmaps(self, args):  # override
         file_path, section_name, zvalue, datatype_dir = args
@@ -146,10 +152,12 @@ class CLEM_Mipmapper(Mipmapper):
         # tifffile.OmeXml.validate(description)
         image = page.asarray()
         pixels = element.find("Pixels", NAMESPACE)
+        pixel_count = [int(pixels.attrib["Size" + xy]) for xy in XY]
+
         if channel == "Secondary electrons":
             name = DIR_BY_DATATYPE[datatype_dir]
-            if datatype_dir != "CLEM-grid":
-                image = skimage.util.invert(image)  # invert the SEM image
+            if self.invert_em:
+                image = skimage.util.invert(image)
 
             intensity_clip = 1, 99
         elif (
@@ -196,48 +204,54 @@ class CLEM_Mipmapper(Mipmapper):
 
         timestr = element.find("AcquisitionDate", NAMESPACE).text
         time = datetime.datetime.fromisoformat(timestr)
-        plane = pixels.find("Plane", NAMESPACE)
 
-        tforms = []
-        transform = element.find("Transform", NAMESPACE)
-        if transform is not None:
-            # load transform from spec (often a rotation)
-            model = renderapi.transform.AffineModel()
-            model.M00 = transform.attrib["A00"]
-            model.M01 = transform.attrib["A01"]
-            model.M10 = transform.attrib["A10"]
-            model.M11 = transform.attrib["A11"]
-            model.B0 = transform.attrib["A02"]
-            model.B1 = transform.attrib["A12"]
-            model.load_M()
-            tforms.append(model)
+        # use the transforms from the included metadata
+        if self.use_transforms:
+            plane = pixels.find("Plane", NAMESPACE)
 
-        XY = "X", "Y"
-        # size per pixel in micrometers
-        size = [float(pixels.attrib["PhysicalSize" + xy]) for xy in XY]
-        # scaling on y axis needed to align with an x scaled to 1
-        x_size, y_size = size
-        y_corrected = float(y_size / x_size)
-        if y_corrected:
-            tforms.append(renderapi.transform.AffineModel(M11=y_corrected))
+            tforms = []
+            transform = element.find("Transform", NAMESPACE)
+            if transform is not None:
+                # load transform from spec (often a rotation)
+                model = renderapi.transform.AffineModel()
+                model.M00 = transform.attrib["A00"]
+                model.M01 = transform.attrib["A01"]
+                model.M10 = transform.attrib["A10"]
+                model.M11 = transform.attrib["A11"]
+                model.B0 = transform.attrib["A02"]
+                model.B1 = transform.attrib["A12"]
+                model.load_M()
+                tforms.append(model)
 
-        # invert y
-        # tforms.append(renderapi.transform.AffineModel(M11=-1))
+            # size per pixel in micrometers
+            size = [float(pixels.attrib["PhysicalSize" + xy]) for xy in XY]
+            # scaling on y axis needed to align with an x scaled to 1
+            x_size, y_size = size
+            y_corrected = float(y_size / x_size)
+            if y_corrected:
+                tforms.append(renderapi.transform.AffineModel(M11=y_corrected))
 
-        # pixel count
-        pixels = [int(pixels.attrib["Size" + xy]) for xy in XY]
-        # stage position
-        # NOTE: even though the OME spec specifies this parameter in um it is
-        # erroneously saved in meters
-        position = [plane.attrib["Position" + xy] for xy in XY]
-        # NOTE: the y position needs to be inverted, the input data has origin
-        # in the bottom left corner
-        um_position = [  # convert to micrometers
-            float(pos) * 1e6 * invert for pos, invert in zip(position, (1, -1))
-        ]
+            # invert y
+            # tforms.append(renderapi.transform.AffineModel(M11=-1))
+
+            # stage position
+            # NOTE: even though the OME spec specifies this parameter in um it
+            # is erroneously saved in meters
+            position = [float(plane.attrib["Position" + xy]) for xy in XY]
+            # NOTE: the y position needs to be inverted, the input data has
+            # origin in the bottom left corner
+            um_position = [  # convert to micrometers
+                pos * 1e6 * invert for pos, invert in zip(position, (1, -1))
+            ]
+        else:  # lay out tiles in a grid with no overlap
+            x_size = 1
+            tforms = []
+            um_position = [xy * px for xy, px in zip(x_by_y, pixel_count)]
 
         # calculate boundary box
-        bbox = np.array([[0, 0], [0, pixels[1]], [pixels[0], 0], [*pixels]])
+        bbox = np.array(
+            [[0, 0], [0, pixel_count[1]], [pixel_count[0], 0], [*pixel_count]]
+        )
         for tform in tforms:
             bbox = tform.tform(bbox)
 
