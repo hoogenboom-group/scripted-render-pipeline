@@ -207,6 +207,7 @@ class Stitcher:
         renderapi.stack.set_stack_state(
             self.matching_stack, "COMPLETE", **self.render
         )
+        self.log(f"uploaded {self.matching_stack}")
 
         # upload pointmatches
         self.matches_name = f"{self.render["project"]}_{self.stack}_matches"
@@ -238,6 +239,7 @@ class Stitcher:
         self.stitched_stack = montage(
             self.matching_stack, self.matches_name, self.render, self.clobber
         )
+        self.log(f"created {self.stitched_stack}")
 
     def run(self):
         """runs the stitcher from start to finish"""
