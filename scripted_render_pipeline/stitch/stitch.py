@@ -7,9 +7,10 @@ import renderapi
 import requests
 import tqdm
 
-from .get_match_tiles import get_match_tiles
-from ..importer import uploader
 from . import match
+from ..importer import uploader
+from .get_match_tiles import get_match_tiles
+from .montage import montage
 
 
 DEBUG = False
@@ -184,31 +185,35 @@ class Stitcher:
         metadata = renderapi.stack.get_stack_metadata(
             self.stack, **self.render
         )
-        matching_stack = f"{self.stack}_matching"
+        self.matching_stack = f"{self.stack}_matching"
         if self.clobber:
             try:
-                renderapi.stack.delete_stack(matching_stack, **self.render)
+                renderapi.stack.delete_stack(
+                    self.matching_stack, **self.render
+                )
             except renderapi.errors.RenderError:
                 pass
 
         renderapi.stack.create_stack(
-            matching_stack,
+            self.matching_stack,
             stackResolutionX=metadata.stackResolutionX,
             stackResolutionY=metadata.stackResolutionY,
             stackResolutionZ=metadata.stackResolutionZ,
             **self.render,
         )
-        uploader.import_tilespecs(matching_stack, tilespecs, **self.render)
+        uploader.import_tilespecs(
+            self.matching_stack, tilespecs, **self.render
+        )
         renderapi.stack.set_stack_state(
-            matching_stack, "COMPLETE", **self.render
+            self.matching_stack, "COMPLETE", **self.render
         )
 
         # upload pointmatches
-        matches_name = f"{self.render["project"]}_{self.stack}_matches"
+        self.matches_name = f"{self.render["project"]}_{self.stack}_matches"
         if self.clobber:
             try:
                 renderapi.pointmatch.delete_collection(
-                    matches_name, **self.render
+                    self.matches_name, **self.render
                 )
             except renderapi.errors.RenderError as exc:
                 if exc.args[0].endswith("does not exist"):
@@ -221,9 +226,18 @@ class Stitcher:
                     )
 
         renderapi.pointmatch.import_matches(
-            matches_name, matches, **self.render
+            self.matches_name, matches, **self.render
         )
-        self.log(f"uploaded {matches_name}")
+        self.log(f"uploaded {self.matches_name}")
+
+    def montage(self):
+        """runs the montage after pointmatching completed
+
+        requires uploading first
+        """
+        self.stitched_stack = montage(
+            self.matching_stack, self.matches_name, self.render, self.clobber
+        )
 
     def run(self):
         """runs the stitcher from start to finish"""
@@ -245,4 +259,5 @@ class Stitcher:
         matches = self.get_all_matches()
         tilespecs, matches = self.filter_tilespecs(matches)
         self.upload_to_render(tilespecs, matches)
+        self.montage()
         self.log(f"stitching for {self.stack} completed")
