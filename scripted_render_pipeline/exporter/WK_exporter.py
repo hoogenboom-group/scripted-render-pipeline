@@ -76,8 +76,8 @@ class WK_Exporter():
             CATMAID_exporter = CATMAID_Exporter(self.catmaid_dir, self.render, self.client_scripts,
                                                 self.parallel, self.clobber)
             export_data = CATMAID_exporter.set_export_parameters(stacks_2_export)  # Set up CATMAID export parameters
-            z_values = np.unique([renderapi.stack.get_z_values_for_stack(stack, **self.render)
-                                  for stack in stacks_2_export])
+            z_values = np.unique([x for stack in stacks_2_export for x in renderapi.stack.get_z_values_for_stack(stack, **self.render)
+                                  ])
             # Render tiles with BoxClient
             logging.info(
                 "Running BoxClient..."

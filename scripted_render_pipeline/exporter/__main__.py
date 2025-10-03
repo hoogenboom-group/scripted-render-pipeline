@@ -14,9 +14,16 @@ from .utils import ExportTarget
 # render properties
 HOST = "https://sonic.tnw.tudelft.nl"
 OWNER = "skaracoban"
-PROJECT = "20240219_PD05_final_test"
-STACKS_2_EXPORT = ["EM_himag_stitched", "exc_405nm_correlated",
-                   "EM_himag_stitched_new", "exc_405nm_correlated_new"]  # list
+PROJECT = "202509_SK002_rows_bk_corr"
+STACKS_2_EXPORT = [
+    # 'EM_himag_stitched',
+    'EM_himag_stitched_filtered',
+    'exc_405nm_correlated',
+    'exc_555nm_correlated',
+    'exc_405nm_bk_corr_correlated',
+    'exc_555nm_bk_corr_correlated',
+    # "EM_lomag_correlated",
+]  # list
 CLIENT_SCRIPTS = "/home/catmaid/render/render-ws-java-client/src/main/scripts"
 WK_CLIENT_SCRIPT = "/opt/webknossos/tools/cube.sh"
 
@@ -30,7 +37,7 @@ REMOVE_CATMAID_DIR = False
 NAS_SHARE_PATH = pathlib.Path.home() / "shares/long_term_storage"
 SERVER_STORAGE_PATH_STR = "/long_term_storage/"
 # EXPORT_TYPE = "WEBKNOSSOS"  # "WEBKNOSSOS" or "CATMAID"
-EXPORT_TYPE = ExportTarget.WEBKNOSSOS  # No more misspelling WebKnossos (string like before also still works)
+EXPORT_TYPE = ExportTarget.CATMAID  # No more misspelling WebKnossos (string like before also still works)
 
 # export directories
 CATMAID_DIR = (
@@ -51,8 +58,8 @@ def _main():
 
     match EXPORT_TYPE:
         case ExportTarget.WEBKNOSSOS:
-            exporter = WK_Exporter(WK_DIR, CATMAID_DIR, RENDER, 
-                                   CLIENT_SCRIPTS, WK_CLIENT_SCRIPT, 
+            exporter = WK_Exporter(WK_DIR, CATMAID_DIR, RENDER,
+                                   CLIENT_SCRIPTS, WK_CLIENT_SCRIPT,
                                    PARALLEL, CLOBBER, REMOVE_CATMAID_DIR)
         case ExportTarget.CATMAID:
             exporter = CATMAID_Exporter(

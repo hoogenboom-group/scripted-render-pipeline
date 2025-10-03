@@ -69,9 +69,8 @@ class CATMAID_Exporter():
         if type(stacks_2_export) is not list:
             stacks_2_export = [stacks_2_export]
         export_data = self.set_export_parameters(stacks_2_export)  # Set up CATMAID export parameters
-        z_values = np.unique([renderapi.stack.get_z_values_for_stack(stack,
-                                                                     **self.render)
-                              for stack in stacks_2_export])
+        z_values = np.unique([x for stack in stacks_2_export for x in renderapi.stack.get_z_values_for_stack(stack, **self.render)
+                              ])
         logging.info(
             "Running render_catmaid_boxes..."
         )
