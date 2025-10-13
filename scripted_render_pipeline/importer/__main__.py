@@ -12,24 +12,24 @@ from .uploader import Uploader
 
 # render properties
 HOST = "https://sonic.tnw.tudelft.nl"
-OWNER = "rlane"
+OWNER = "skaracoban"
 # PROJECT = "20191101_ratpancreas_partial_partial_test"
-PROJECT = "20230523_singleholder_Earthworm_03_partial_partial_test"
+PROJECT = "202510_SK002_rows_bk_corr"
 
 # script properties
 PARALLEL = 40  # read this many images in parallel to optimise io usage
 CLOBBER = True  # set to false to fail if data would be overwritten
 Z_RESOLUTION = 100  # the thickness of sections
-REMOTE = True  # set to false if ran locally
+REMOTE = False  # set to false if ran locally
 NAS_SHARE_PATH = pathlib.Path.home() / "shares/long_term_storage"
 SERVER_STORAGE_PATH_STR = "/long_term_storage/"
 PROJECT_PATH = (
     (NAS_SHARE_PATH if REMOTE else pathlib.Path(SERVER_STORAGE_PATH_STR))
     # / "thopp/20191101_rat-pancreas_partial"
     #  / "rlane/SECOM/projects/20191101_rat-pancreas_partial"
-    / "thopp/20230523_singleholder_Earthworm_03/ROA-1"
+    / "skaracoban/data/SK002/render_data_rows_bk_corr/"
 )
-MIPMAP_TYPE = "FASTEM"  # "CLEM"
+MIPMAP_TYPE = "CLEM"  # "CLEM"
 # for fastem datasets only
 USE_POSITIONS = True  # use the automated stitching results
 
