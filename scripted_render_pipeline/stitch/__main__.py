@@ -2,6 +2,7 @@
 
 relies on provided parameters being set in the script for now
 """
+
 import logging
 
 from ..basic_auth import load_auth

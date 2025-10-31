@@ -1,8 +1,12 @@
+import re
+
 import renderapi
+import requests
 from bigfeta.bigfeta import BigFeta
 
 
 PARALLEL = 32
+URL_PORT_RX = re.compile(r"(.*):(\d+)")
 
 
 def montage(
@@ -36,6 +40,35 @@ def montage(
         except renderapi.errors.RenderError:
             pass
 
+    render = {**render}  # make copy
+    auth = render["session"].auth
+    del render["session"]
+
+    if "port" not in render:  # remove port from host if not present
+        host = render.pop("host")
+        match = URL_PORT_RX.fullmatch(host)
+        if match:
+            host, port = match.groups()
+        elif host.startswith("https://"):
+            port = 443
+        else:
+            port = 80
+
+        render["host"] = host
+        render["port"] = port
+
+    # monkeypatch requests to use our auth
+    old_func = requests.Session
+
+    def session_wrapper():
+        sesh = old_func()
+        sesh.auth = auth
+        return sesh
+
+    requests.Session = session_wrapper
+    # the reason we have to do this is because bigfeta does not offer a way to
+    # set http auth, bigfeta will not connect to any other urls so this is fine
+
     fetaschema = {
         "close_stack": "True",
         "first_section": z_values[0],
@@ -46,29 +79,21 @@ def montage(
         "transformation": model,
         "n_parallel_jobs": PARALLEL,
         "input_stack": {
-            "owner": render["owner"],
-            "project": render["project"],
             "name": stack,
-            "host": render["host"],
-            "port": render["port"],
+            **render,
             "collection_type": "stack",
             "db_interface": "render",
             "use_rest": "True",
         },
         "pointmatch": {
-            "owner": render["owner"],
             "name": pointmatch,
-            "host": render["host"],
-            "port": render["port"],
+            **render,
             "collection_type": "pointmatch",
             "db_interface": "render",
         },
         "output_stack": {
-            "owner": render["owner"],
-            "project": render["project"],
             "name": output_stack,
-            "host": render["host"],
-            "port": render["port"],
+            **render,
             "collection_type": "stack",
             "db_interface": "render",
             "use_rest": "True",
@@ -90,4 +115,8 @@ def montage(
     fetaschema.update(schema_changes)
     feta = BigFeta(input_data=fetaschema)
     feta.run()
+
+    # undo monkeypatch
+    requests.Session = old_func
+
     return output_stack

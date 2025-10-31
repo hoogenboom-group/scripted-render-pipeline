@@ -31,7 +31,7 @@ class Matcher:
     match_y: world y coordinate of border minimum
     section_id: render section_id
     direction: horizontal or vertical
-    z: z layer
+    zlevel: index of z layer
     """
 
     def __init__(
@@ -43,10 +43,9 @@ class Matcher:
         match_y,
         section_id,
         direction,
-        z,
+        zlevel,
         clahe=False,
     ):
-        self.image_limit = stitcher.image_limit
         self.overlap = stitcher.overlap
         self.max_keypoints = stitcher.max_keypoints
         self.sift_params = stitcher.sift_params
@@ -63,7 +62,7 @@ class Matcher:
         self.match_y = match_y
         self.section_id = section_id
         self.direction = ALIGNMENTS.index(direction)
-        self.z = z
+        self.zlevel = zlevel
         self.clahe = clahe
 
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -77,7 +76,7 @@ class Matcher:
         """log to class logger, for convenience"""
         self.logger.info(*args, **kwargs)
 
-    def get_images(self):
+    def get_images(self, image_limit):
         """download the image from render
 
         returns the image
@@ -97,9 +96,9 @@ class Matcher:
                 self.overlap * 2,
             )
 
-        with self.image_limit:  # be patient with renderapi
+        with image_limit:  # be patient with renderapi
             img = renderapi.image.get_bb_image(
-                self.stack, self.z, *boundary_box, **self.render
+                self.stack, self.zlevel, *boundary_box, **self.render
             )
 
         if type(img) is renderapi.errors.RenderError:
@@ -152,12 +151,12 @@ class Matcher:
 
         return keep
 
-    def make_pointmatches(self):
+    def make_pointmatches(self, image_limit):
         """make the pointmatches for each pair
 
         returns pointmatches for this tilepair as dict
         """
-        imgs = self.get_images()
+        imgs = self.get_images(image_limit)
 
         # run SIFT
         sift = skimage.feature.SIFT(1, **self.sift_params)

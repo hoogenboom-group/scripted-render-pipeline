@@ -45,7 +45,6 @@ class Stitcher:
             self.max_workers = 1
 
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.image_limit = mp.Lock()
         # amount of pixels that the images overlap on the edges
         self.overlap = 400
         # intelligently remove keypoints over this limit
@@ -88,41 +87,47 @@ class Stitcher:
         if DEBUG:
             ProcessPoolExecutor = concurrent.futures.ThreadPoolExecutor
 
-        with ProcessPoolExecutor(self.max_workers) as pool:
-            for z in self.z_values:
-                for direction, tilepairs in enumerate(self.matched_tiles[z]):
-                    for p_name, q_name, x, y, section_id in tilepairs:
-                        matcher = match.Matcher(
-                            self,
-                            p_name,
-                            q_name,
-                            x,
-                            y,
-                            section_id,
-                            match.ALIGNMENTS[direction],
-                            z,
-                        )
-                        future = pool.submit(
-                            matcher.make_pointmatches,
-                        )
-                        futures[future] = matcher
+        with mp.Manager() as manager:
+            image_limit = manager.Lock()
 
-        z_all_matches = collections.defaultdict(list)
-        z_connections = collections.defaultdict(
-            lambda: collections.defaultdict(list)
-        )
-        for future in tqdm.tqdm(
-            concurrent.futures.as_completed(futures), total=len(futures)
-        ):
-            result = future.result()
-            if result:
-                matcher = futures[future]
-                z = matcher.z
-                p_name = matcher.p_name
-                q_name = matcher.q_name
-                z_all_matches[z].append(result)
-                z_connections[z][p_name].append(q_name)
-                z_connections[z][q_name].append(p_name)
+            with ProcessPoolExecutor(self.max_workers) as pool:
+                for zlevel in self.z_values:
+                    for direction, tilepairs in enumerate(
+                        self.matched_tiles[zlevel]
+                    ):
+                        for p_name, q_name, x, y, section_id in tilepairs:
+                            matcher = match.Matcher(
+                                self,
+                                p_name,
+                                q_name,
+                                x,
+                                y,
+                                section_id,
+                                match.ALIGNMENTS[direction],
+                                zlevel,
+                            )
+                            future = pool.submit(
+                                matcher.make_pointmatches,
+                                image_limit,
+                            )
+                            futures[future] = matcher
+
+            z_all_matches = collections.defaultdict(list)
+            z_connections = collections.defaultdict(
+                lambda: collections.defaultdict(list)
+            )
+            for future in tqdm.tqdm(
+                concurrent.futures.as_completed(futures), total=len(futures)
+            ):
+                result = future.result()
+                if result:
+                    matcher = futures[future]
+                    zlevel = matcher.zlevel
+                    p_name = matcher.p_name
+                    q_name = matcher.q_name
+                    z_all_matches[zlevel].append(result)
+                    z_connections[zlevel][p_name].append(q_name)
+                    z_connections[zlevel][q_name].append(p_name)
 
         return z_all_matches, z_connections
 
@@ -144,21 +149,23 @@ class Stitcher:
 
         matches_to_send = []
         good_tilespecs = []
-        for z in self.z_values:
-            if z not in matches:
-                self.logger.warning(f"zlevel {z} does not have any matches")
+        for zlevel in self.z_values:
+            if zlevel not in matches:
+                self.logger.warning(
+                    f"zlevel {zlevel} does not have any matches"
+                )
                 continue
 
-            all_matches = matches[z]
-            connections = connections[z]
+            level_matches = matches[zlevel]
+            level_connections = connections[zlevel]
             groups = []
-            while connections:
+            while level_connections:
                 connected = set()
-                checking = [next(iter(connections))]
+                checking = [next(iter(level_connections))]
                 while checking:
                     name = checking.pop()
                     connected.add(name)
-                    for item in connections.pop(name):
+                    for item in level_connections.pop(name):
                         if item not in connected and item not in checking:
                             checking.append(item)
 
@@ -170,7 +177,7 @@ class Stitcher:
                     largest_group = group
                     largest = len(group)
 
-            for d in all_matches:
+            for d in level_matches:
                 if d["pId"] in largest_group or d["qId"] in largest_group:
                     matches_to_send.append(d)
 
@@ -244,8 +251,8 @@ class Stitcher:
     def run(self):
         """runs the stitcher from start to finish"""
         self.z_values = [
-            int(z)
-            for z in renderapi.stack.get_z_values_for_stack(
+            int(zlevel)
+            for zlevel in renderapi.stack.get_z_values_for_stack(
                 self.stack, **self.render
             )
         ]
@@ -258,8 +265,8 @@ class Stitcher:
         self.matched_tiles, self.size = get_match_tiles(
             self.stack, self.z_values, self.render
         )
-        matches = self.get_all_matches()
-        tilespecs, matches = self.filter_tilespecs(matches)
+        matches, connections = self.get_all_matches()
+        tilespecs, matches = self.filter_tilespecs(matches, connections)
         self.upload_to_render(tilespecs, matches)
         self.montage()
         self.log(f"stitching for {self.stack} completed")
