@@ -1,10 +1,14 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "scripted-render-pipeline"
 version = "0.0.1"
 authors = [
   { name="thopp-tudelft", email="t.r.hoppener@tudelft.nl" },
 ]
-license = {text = "GPLv3+"}
+license = "GPL-3.0-or-later"
 keywords = [
   "image processing",
   "volume reconstruction",
@@ -35,7 +39,7 @@ dependencies = [
   "scikit-image",
   "tifffile",
   "tqdm",
-  "webknossos",
+  "webknossos>=0.14.0",
 ]
 
 [project.optional-dependencies]
