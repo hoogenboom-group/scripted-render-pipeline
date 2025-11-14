@@ -44,23 +44,17 @@ xml.etree.ElementTree.register_namespace("", OME_NAMESPACE_URI)
 class CLEM_Mipmapper(Mipmapper):
     """creates mipmaps from images and collects tile specs for CLEM
 
-    project_path: path to project to make mipmaps for
-    parallel: how many threads to use in parallel, optimises io usage
-    clobber: wether to allow overwriting of existing mipmaps
-    mipmap_path: where to save mipmaps, defaults to project_path/_mipmaps
+    see the Mipmapper class description for arguments
 
     additional optional named arguments:
     invert_em: invert the em layer, this converts backscatter detector type
         images to look like transmission results, defaults to True,
         for OSTEM images set this to False
-    use_transforms: use the transforms from the included metadata,
-        defaults to False
     """
 
-    def __init__(self, *args, invert_em=True, use_transforms=False, **kwargs):
+    def __init__(self, *args, invert_em=True, **kwargs):
         super().__init__(*args, **kwargs)
         self.invert_em = invert_em
-        self.use_transforms = use_transforms
 
     def create_mipmaps(self, args):  # override
         file_path, section_name, zvalue, datatype_dir = args
@@ -138,10 +132,10 @@ class CLEM_Mipmapper(Mipmapper):
         tags = page.tags
         channel = tags["PageName"].value
         width, height = tags["ImageWidth"].value, tags["ImageLength"].value
-        element = image_elements_by_name[channel]
+        image_element = image_elements_by_name[channel]
         new_root = copy.copy(root)
         for other in image_elements_by_name.values():
-            if other != element:
+            if other != image_element:
                 new_root.remove(other)
 
         description = xml.etree.ElementTree.tostring(
@@ -151,9 +145,9 @@ class CLEM_Mipmapper(Mipmapper):
         )
         # tifffile.OmeXml.validate(description)
         image = page.asarray()
-        pixels = element.find("Pixels", NAMESPACE)
-        pixel_count = [int(pixels.attrib["Size" + xy]) for xy in XY]
 
+        pixels_element = image_element.find("Pixels", NAMESPACE)
+        pixel_count = [int(pixels_element.attrib["Size" + xy]) for xy in XY]
         if channel == "Secondary electrons":
             name = DIR_BY_DATATYPE[datatype_dir]
             if self.invert_em:
@@ -164,7 +158,7 @@ class CLEM_Mipmapper(Mipmapper):
             channel.startswith("Filtered colour ")
             and datatype_dir == "CLEM-grid"
         ):
-            pixel_channel = pixels.find("Channel", NAMESPACE)
+            pixel_channel = pixels_element.find("Channel", NAMESPACE)
             wavelength = pixel_channel.attrib["ExcitationWavelength"]
             name = f"exc_{wavelength}nm"
             intensity_clip = 30, 99
@@ -192,7 +186,7 @@ class CLEM_Mipmapper(Mipmapper):
         modelname = "SECOM"
         # this assumes each objective has an associated detector with that id,
         # the image only includes the objective id
-        objective_settings = element.find("ObjectiveSettings", NAMESPACE)
+        objective_settings = image_element.find("ObjectiveSettings", NAMESPACE)
         _, objective_id = objective_settings.attrib["ID"].split(":")
         try:
             detectorname = detector_by_id[objective_id]
@@ -202,15 +196,15 @@ class CLEM_Mipmapper(Mipmapper):
                 f"{objective_id}"
             ) from exc
 
-        timestr = element.find("AcquisitionDate", NAMESPACE).text
+        timestr = image_element.find("AcquisitionDate", NAMESPACE).text
         time = datetime.datetime.fromisoformat(timestr)
 
         # use the transforms from the included metadata
-        if self.use_transforms:
-            plane = pixels.find("Plane", NAMESPACE)
+        if self.import_tforms:
+            plane = pixels_element.find("Plane", NAMESPACE)
 
             tforms = []
-            transform = element.find("Transform", NAMESPACE)
+            transform = image_element.find("Transform", NAMESPACE)
             if transform is not None:
                 # load transform from spec (often a rotation)
                 model = renderapi.transform.AffineModel()
@@ -224,7 +218,9 @@ class CLEM_Mipmapper(Mipmapper):
                 tforms.append(model)
 
             # size per pixel in micrometers
-            size = [float(pixels.attrib["PhysicalSize" + xy]) for xy in XY]
+            size = [
+                float(pixels_element.attrib["PhysicalSize" + xy]) for xy in XY
+            ]
             # scaling on y axis needed to align with an x scaled to 1
             x_size, y_size = size
             y_corrected = float(y_size / x_size)
@@ -247,6 +243,9 @@ class CLEM_Mipmapper(Mipmapper):
             x_size = 1
             tforms = []
             um_position = [xy * px for xy, px in zip(x_by_y, pixel_count)]
+            # NOTE: y correction is not performed when not importing tforms!
+            # this means that y correction would need to be applied after
+            # stitching or the sticher needs to keep y correction into account!
 
         # calculate boundary box
         bbox = np.array(
