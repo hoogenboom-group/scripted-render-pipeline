@@ -28,6 +28,8 @@ classifiers = [
 ]
 dependencies = [
   "bigfeta",
+  # bigfeta requires distutils but it does not attempt to install it on new python versions!
+  "setuptools; python_version > '3.11'",
   "imagecodecs",
   "numpy",
   "pyyaml",
