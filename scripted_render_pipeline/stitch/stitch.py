@@ -18,7 +18,19 @@ SINGLE_LAYER = False
 
 
 class Stitcher:
-    """stitches images in xy"""
+    """stitches images in xy
+
+    host: address of the server hosting render-ws
+    owner: name of the render project owner
+    project: render project name
+    stack: render stack that will be stitched, the new stitched stack will be
+        uploaded with the name {stack}_matching_stitched, an intermediate stack
+        called {stack}_matching will also be uploaded, and the pointmatches
+        will be saved at {project}_{stack}_matches
+    auth: http basic auth credentials, tuple of (username, password)
+    clobber: whether to allow overwriting of existing projects
+    max_workers: how many processes to use in parallel
+    """
 
     def __init__(
         self,
@@ -187,7 +199,11 @@ class Stitcher:
         return good_tilespecs, matches_to_send
 
     def upload_to_render(self, tilespecs, matches):
-        """upload the new stack and matches to render"""
+        """upload the new stack and matches to render
+
+        tilespecs: tilespecs of the new stack to upload
+        matches: matches to upload
+        """
         # upload stack with only matching tiles
         metadata = renderapi.stack.get_stack_metadata(
             self.stack, **self.render
