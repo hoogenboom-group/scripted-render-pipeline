@@ -217,7 +217,7 @@ class Stitcher:
         self.log(f"uploaded {self.matching_stack}")
 
         # upload pointmatches
-        self.matches_name = f"{self.render["project"]}_{self.stack}_matches"
+        self.matches_name = f"{self.render['project']}_{self.stack}_matches"
         if self.clobber:
             try:
                 renderapi.pointmatch.delete_collection(
