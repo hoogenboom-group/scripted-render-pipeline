@@ -4,6 +4,7 @@ Makes MIPmaps
 
 relies on provided parameters being set in the script for now
 """
+
 import logging
 import pathlib
 from natsort import natsorted
@@ -14,39 +15,65 @@ from .fastem_mipmapper import FASTEM_Mipmapper
 from .uploader import Uploader
 
 # render properties
-HOST = "https://sonic.tnw.tudelft.nl" # Web address which hosts render-ws. It's usually the preamble of the link to render-ws html page, i.e. {host_name}/render-ws/view/index.html
-OWNER = "akievits" # render-ws ID of dataset
-PROJECT = "20231107_MCF7_UAC_test" # Project directory on disk
-CORRECTIONS_DIR = "postcorrection" # name of postcorrection directory
+HOST = "https://sonic.tnw.tudelft.nl"
+OWNER = "thopp"
+PROJECT = "SK0002_H004_A001_subdataset"
 
 # script properties
+MIPMAP_TYPE = "CLEM"  # which mipmapper to use, either FASTEM or CLEM
 PARALLEL = 40  # read this many images in parallel to optimise io usage
 CLOBBER = True  # set to false to fail if data would be overwritten
 Z_RESOLUTION = 100  # the thickness of sections
-REMOTE = False  # set to false if ran locally
+REMOTE = True  # set to false if ran locally
+# the location the nas is mounted on this machine, only used when remote
 NAS_SHARE_PATH = pathlib.Path.home() / "shares/long_term_storage"
-SERVER_STORAGE_PATH_STR = "/long_term_storage/" # Base storage path
-PROJECT_PATH = (
-    (NAS_SHARE_PATH if REMOTE else pathlib.Path(SERVER_STORAGE_PATH_STR))
-    / f"akievits/FAST-EM/tests/{PROJECT}" # Path to data
-)
-MIPMAP_TYPE = "FASTEM"  # "CLEM"
+SERVER_STORAGE_PATH_STR = "/long_term_storage/"  # Base storage path
+# Path to data
+PROJECT_PATH_STR = "skaracoban/test_data/SK0002_H004_A001_subdataset"
+MIPMAP_PATH_STR = "thopp/SK0002_H004_A001_subdataset_mipmaps"
+if REMOTE:
+    PROJECT_PATH = NAS_SHARE_PATH / PROJECT_PATH_STR
+    MIPMAP_PATH = NAS_SHARE_PATH / MIPMAP_PATH_STR
+else:
+    PROJECT_PATH = pathlib.Path(SERVER_STORAGE_PATH_STR) / PROJECT_PATH_STR
+    MIPMAP_PATH = pathlib.Path(SERVER_STORAGE_PATH_STR) / MIPMAP_PATH_STR
+
+# use the automated stitching results from acquisition software
+IMPORT_TFORMS = False
 
 # for FAST-EM datasets only
-USE_POSITIONS = True  # use the automated stitching results from acquisition software
-MULTIPLE_SECTIONS = True # Set to False for a single section
+MULTIPLE_SECTIONS = True  # Set to False for a single section
+CORRECTIONS_DIR = "postcorrection"
 
-PROJECT_PATHS = natsorted([p / CORRECTIONS_DIR for p in PROJECT_PATH.iterdir() if (p.is_dir() and not p.name.startswith('_'))]) if MULTIPLE_SECTIONS else None
+if MULTIPLE_SECTIONS:
+    project_paths = []
+    for path in PROJECT_PATH.iterdir():
+        if path.is_dir() and not path.name.startswith("_"):
+            project_paths.append(path / CORRECTIONS_DIR)
+    project_paths = natsorted(project_paths)
+else:
+    project_paths = None
 
-   
+
 def _main():
     auth = load_auth()
     match MIPMAP_TYPE:
         case "CLEM":
-            mipmapper = CLEM_Mipmapper(PROJECT_PATH, PARALLEL, CLOBBER)
+            mipmapper = CLEM_Mipmapper(
+                PROJECT_PATH,
+                PARALLEL,
+                CLOBBER,
+                import_tforms=IMPORT_TFORMS,
+                mipmap_path=MIPMAP_PATH
+            )
         case "FASTEM":
             mipmapper = FASTEM_Mipmapper(
-                PROJECT_PATH, PARALLEL, CLOBBER, use_positions=USE_POSITIONS, project_paths=PROJECT_PATHS
+                PROJECT_PATH,
+                PARALLEL,
+                CLOBBER,
+                import_tforms=IMPORT_TFORMS,
+                project_paths=project_paths,
+                mipmap_path=MIPMAP_PATH
             )
         case _:
             raise RuntimeError(f"wrong mipmap type! '{MIPMAP_TYPE}'")
