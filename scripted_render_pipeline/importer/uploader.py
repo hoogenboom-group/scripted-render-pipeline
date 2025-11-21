@@ -63,11 +63,11 @@ def import_tilespecs(stack, tilespecs, shared_transforms=None, **kwargs):
 class Uploader:
     """talks with the render-ws rest api to upload stacks
 
-    host: url of server
-    owner: name of project owner
-    project: project name
+    host: address of the server hosting render-ws
+    owner: name of the render project owner
+    project: render project name
     auth: http basic auth credentials, tuple of (username, password)
-    clobber: wether to allow overwriting of existing projects
+    clobber: whether to allow overwriting of existing projects
     """
 
     def __init__(self, host, owner, project, auth=None, clobber=False):
