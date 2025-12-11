@@ -30,10 +30,13 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Image Processing",
 ]
 dependencies = [
+  "bigfeta",
+  # bigfeta requires distutils but it does not attempt to install it on new python versions!
+  "setuptools; python_version > '3.11'",
   "imagecodecs",
   "numpy",
   "pyyaml",
-  "render-python",
+  "render-python>=2.4.1",
   "requests",
   "scikit-image",
   "tifffile",
