@@ -33,7 +33,7 @@ dependencies = [
   "imagecodecs",
   "numpy",
   "pyyaml",
-  "render-python",
+  "render-python>=2.4.1",
   "requests",
   "scikit-image",
   "tifffile",
