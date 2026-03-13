@@ -2,4 +2,4 @@
 
 from .stitch import Stitcher
 
-__ALL__ = ["Stitcher"]
+__all__ = ["Stitcher"]
