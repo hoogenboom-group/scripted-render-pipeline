@@ -2,8 +2,8 @@ import collections
 import itertools
 import logging
 
-import renderapi
 import numpy as np
+import renderapi
 
 _bounds = collections.namedtuple(
     "Bounds", "min_x min_y min_z max_x max_y max_z"
@@ -28,8 +28,11 @@ def Bounds(
     """container for render bounds"""
     if tileId is None and sectionId is None and z is None:
         return _bounds(minX, minY, minZ, maxX, maxY, maxZ)
-    elif maxZ is None and minZ is None:
+
+    if maxZ is None and minZ is None:
         return _tile_bounds(minX, minY, z, maxX, maxY, z, tileId, sectionId)
+
+    return _tile_bounds(minX, minY, minZ, maxX, maxY, maxZ, tileId, sectionId)
 
 
 def bounds_to_bbox(bounds):

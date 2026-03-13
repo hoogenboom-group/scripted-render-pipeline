@@ -1,17 +1,15 @@
 import collections
 import concurrent.futures
 import logging
-import multiprocessing as mp
 
 import renderapi
 import requests
 import tqdm
 
-from . import match
 from ..importer import uploader
+from . import match
 from .get_match_tiles import get_match_tiles
 from .montage import montage
-
 
 DEBUG = False
 SINGLE_LAYER = False
@@ -99,47 +97,41 @@ class Stitcher:
         if DEBUG:
             ProcessPoolExecutor = concurrent.futures.ThreadPoolExecutor
 
-        with mp.Manager() as manager:
-            image_limit = manager.Lock()
+        with ProcessPoolExecutor(self.max_workers) as pool:
+            for zlevel in self.z_values:
+                for direction, tilepairs in enumerate(
+                    self.matched_tiles[zlevel]
+                ):
+                    for p_name, q_name, x, y, section_id in tilepairs:
+                        matcher = match.Matcher(
+                            self,
+                            p_name,
+                            q_name,
+                            x,
+                            y,
+                            section_id,
+                            match.ALIGNMENTS[direction],
+                            zlevel,
+                        )
+                        future = pool.submit(matcher.make_pointmatches)
+                        futures[future] = matcher
 
-            with ProcessPoolExecutor(self.max_workers) as pool:
-                for zlevel in self.z_values:
-                    for direction, tilepairs in enumerate(
-                        self.matched_tiles[zlevel]
-                    ):
-                        for p_name, q_name, x, y, section_id in tilepairs:
-                            matcher = match.Matcher(
-                                self,
-                                p_name,
-                                q_name,
-                                x,
-                                y,
-                                section_id,
-                                match.ALIGNMENTS[direction],
-                                zlevel,
-                            )
-                            future = pool.submit(
-                                matcher.make_pointmatches,
-                                image_limit,
-                            )
-                            futures[future] = matcher
-
-            z_all_matches = collections.defaultdict(list)
-            z_connections = collections.defaultdict(
-                lambda: collections.defaultdict(list)
-            )
-            for future in tqdm.tqdm(
-                concurrent.futures.as_completed(futures), total=len(futures)
-            ):
-                result = future.result()
-                if result:
-                    matcher = futures[future]
-                    zlevel = matcher.zlevel
-                    p_name = matcher.p_name
-                    q_name = matcher.q_name
-                    z_all_matches[zlevel].append(result)
-                    z_connections[zlevel][p_name].append(q_name)
-                    z_connections[zlevel][q_name].append(p_name)
+        z_all_matches = collections.defaultdict(list)
+        z_connections = collections.defaultdict(
+            lambda: collections.defaultdict(list)
+        )
+        for future in tqdm.tqdm(
+            concurrent.futures.as_completed(futures), total=len(futures)
+        ):
+            result = future.result()
+            if result:
+                matcher = futures[future]
+                zlevel = matcher.zlevel
+                p_name = matcher.p_name
+                q_name = matcher.q_name
+                z_all_matches[zlevel].append(result)
+                z_connections[zlevel][p_name].append(q_name)
+                z_connections[zlevel][q_name].append(p_name)
 
         return z_all_matches, z_connections
 

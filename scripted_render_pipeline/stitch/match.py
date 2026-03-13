@@ -2,9 +2,9 @@ import collections
 import logging
 import pathlib
 
+import numpy as np
 import renderapi
 import skimage
-import numpy as np
 
 PQ = "p", "q"
 ALIGNMENTS = "horizontal", "vertical"
@@ -76,7 +76,7 @@ class Matcher:
         """log to class logger, for convenience"""
         self.logger.info(*args, **kwargs)
 
-    def get_images(self, image_limit):
+    def get_images(self):
         """download the image from render
 
         returns the image
@@ -96,10 +96,9 @@ class Matcher:
                 self.overlap * 2,
             )
 
-        with image_limit:  # be patient with renderapi
-            img = renderapi.image.get_bb_image(
-                self.stack, self.zlevel, *boundary_box, **self.render
-            )
+        img = renderapi.image.get_bb_image(
+            self.stack, self.zlevel, *boundary_box, **self.render
+        )
 
         if type(img) is renderapi.errors.RenderError:
             raise img  # do their job for them
@@ -151,12 +150,12 @@ class Matcher:
 
         return keep
 
-    def make_pointmatches(self, image_limit):
+    def make_pointmatches(self):
         """make the pointmatches for each pair
 
         returns pointmatches for this tilepair as dict
         """
-        imgs = self.get_images(image_limit)
+        imgs = self.get_images()
 
         # run SIFT
         sift = skimage.feature.SIFT(1, **self.sift_params)
