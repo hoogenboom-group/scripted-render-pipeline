@@ -28,6 +28,8 @@ class Mipmapper(abc.ABC):
         previously created mipmaps and give the same results based on the
         source metadata as normal, implies clobber but no mipmaps will be
         overwritten, instead they will be reused
+    import_tforms: try to read and reuse the transforms provided in the
+        metadata, doing this is incompatible with stitching
     """
 
     def __init__(
@@ -37,12 +39,15 @@ class Mipmapper(abc.ABC):
         clobber=False,
         mipmap_path=None,
         reuse_old_mipmaps=False,
+        import_tforms=False,
     ):
         self.remote = False
         self.project_path = project_path
         self.clobber = clobber
         self.parallel = parallel
         self.reuse_old_mipmaps = reuse_old_mipmaps
+        self.import_tforms = import_tforms
+
         if reuse_old_mipmaps:
             self.clobber = True
 

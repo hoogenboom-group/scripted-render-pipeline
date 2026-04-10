@@ -1,10 +1,14 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "scripted-render-pipeline"
 version = "0.0.1"
 authors = [
   { name="thopp-tudelft", email="t.r.hoppener@tudelft.nl" },
 ]
-license = {text = "GPLv3+"}
+license = "GPL-3.0-or-later"
 keywords = [
   "image processing",
   "volume reconstruction",
@@ -20,7 +24,6 @@ requires-python = ">=3.10"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
   "Topic :: Scientific/Engineering :: Bio-Informatics",

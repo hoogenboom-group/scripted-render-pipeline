@@ -36,14 +36,12 @@ POSITIONS_LINE_RX = re.compile(
 class FASTEM_Mipmapper(Mipmapper):
     """creates mipmaps from images and collects tile specs for the fastem
 
-    project_path: path to project to make mipmaps for
-    parallel: how many threads to use in parallel, optimises io usage
-    clobber: wether to allow overwriting of existing mipmaps
-    mipmap_path: where to save mipmaps, defaults to project_path/_mipmaps
+    see the Mipmapper class description for arguments
 
     additional optional named arguments:
     project_paths: iterable of multiple project paths, indexed by zlevel
-    use_positions: use the transforms from the positions.txt file
+    use_positions: use the transforms from the positions.txt file,
+        this is identical to import_tforms
     """
 
     def __init__(
@@ -77,7 +75,8 @@ class FASTEM_Mipmapper(Mipmapper):
 
         super().__init__(project_path, *args, **kwargs)
         self.project_paths = project_paths
-        self.use_positions = use_positions
+        if use_positions:
+            self.import_tforms = True
 
     def find_positions(self, project_path):
         """try to find the positions.txt file and parse it
@@ -227,7 +226,7 @@ class FASTEM_Mipmapper(Mipmapper):
         else:
             *_, project_name, section_name = path.parts
 
-        if self.use_positions:
+        if self.import_tforms:
             positions = self.find_positions(path)
         else:
             positions = None
