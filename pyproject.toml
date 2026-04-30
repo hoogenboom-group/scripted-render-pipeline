@@ -30,15 +30,18 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Image Processing",
 ]
 dependencies = [
+  "bigfeta>=1.1.4",
+  # bigfeta requires distutils but it does not attempt to install it on new python versions!
+  "setuptools; python_version > '3.11'",
   "imagecodecs",
-  "numpy",
+  "numpy>=2",
   "pyyaml",
-  "render-python",
+  "render-python>=2.4.1",
   "requests",
   "scikit-image",
   "tifffile",
   "tqdm",
-  "webknossos>=3.1.0",
+  "webknossos>=3.2",
 ]
 
 [project.optional-dependencies]
